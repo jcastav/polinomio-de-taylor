@@ -1,0 +1,38 @@
+<%- include('../partials/admin-nav', { nav: 'courses' }) %>
+
+<div class="eyebrow">
+  <span>Editar lección · <%= module.title %></span>
+  <span class="meta"><%= course.title %></span>
+</div>
+
+<h1><%= values.title || lesson.title %></h1>
+
+<form class="panel-box" method="post" action="/admin/lessons/<%= lesson.id %>">
+  <div class="form-row">
+    <label for="l-title">Título</label>
+    <input id="l-title" type="text" name="title" maxlength="150" required
+           value="<%= values.title || lesson.title %>">
+    <% if (errors.title) { %><span class="field-error"><%= errors.title %></span><% } %>
+  </div>
+  <div class="form-row">
+    <label for="l-content">Contenido (markdown)</label>
+    <textarea id="l-content" name="content" rows="16" class="code-area"
+              spellcheck="false"><%= values.content !== undefined ? values.content : lesson.content %></textarea>
+    <% if (errors.content) { %><span class="field-error"><%= errors.content %></span><% } %>
+  </div>
+  <div class="result-actions">
+    <button class="btn btn-dark" type="submit">Guardar</button>
+    <button class="btn" type="button" data-preview="<%= lesson.id %>">Previsualizar</button>
+    <a class="btn" href="/c/<%= course.slug %>/l/<%= lesson.id %>" target="_blank">Ver como estudiante</a>
+  </div>
+</form>
+
+<h2>Vista previa</h2>
+<div class="panel-box lesson-body" id="lessonPreview"><%- previewHtml %></div>
+
+<div class="result-actions">
+  <form method="post" action="/admin/lessons/<%= lesson.id %>/delete"
+        onsubmit="return confirm('¿Eliminar la lección?')">
+    <button class="btn btn-accent" type="submit">Eliminar lección</button>
+  </form>
+</div>

@@ -227,77 +227,6 @@ function renderQuestions(quiz, attempt, questions, saved) {
   });
 }
 
-// Respuesta del estudiante en texto (para resultados §9.6).
-function fmtResponse(q, resp) {
-  if (!resp) return null;
-  const p = q.payload;
-  switch (q.type) {
-    case 'single': {
-      if (resp.choice == null) return null;
-      const t = (p.options || [])[resp.choice];
-      return t == null ? null : String(t);
-    }
-    case 'multiple': {
-      const arr = (resp.choices || [])
-        .map((n) => (p.options || [])[n])
-        .filter((t) => t != null);
-      return arr.length ? arr.join(' · ') : null;
-    }
-    case 'truefalse':
-      return resp.value == null ? null : (resp.value ? 'Verdadero' : 'Falso');
-    case 'short':
-      return resp.text ? String(resp.text) : null;
-    case 'match': {
-      if (!Array.isArray(resp.map)) return null;
-      const rows = (p.left || []).map((l, i) => {
-        const r = (p.right || [])[resp.map[i]];
-        return r == null ? `${l} → —` : `${l} → ${r}`;
-      });
-      return rows.join(' · ');
-    }
-    case 'order': {
-      if (!Array.isArray(resp.order)) return null;
-      return resp.order
-        .map((v) => (p.items || [])[v])
-        .filter((t) => t != null)
-        .join(' → ');
-    }
-    default:
-      return null;
-  }
-}
-
-// Respuesta correcta en texto.
-function fmtCorrect(q) {
-  const p = q.payload;
-  switch (q.type) {
-    case 'single': {
-      const t = (p.options || [])[p.correct];
-      return t == null ? null : String(t);
-    }
-    case 'multiple':
-      return (p.correct || [])
-        .map((n) => (p.options || [])[n])
-        .filter((t) => t != null)
-        .join(' · ');
-    case 'truefalse':
-      return p.correct ? 'Verdadero' : 'Falso';
-    case 'short':
-      return (p.accepted || []).join(' / ');
-    case 'match':
-      return (p.pairs || [])
-        .map(([l, r]) => `${(p.left || [])[l]} → ${(p.right || [])[r]}`)
-        .join(' · ');
-    case 'order':
-      return (p.correct_order || [])
-        .map((v) => (p.items || [])[v])
-        .filter((t) => t != null)
-        .join(' → ');
-    default:
-      return null;
-  }
-}
-
 function formatFecha(iso) {
   if (!iso) return '—';
   try {
@@ -597,8 +526,8 @@ router.get('/c/:slug/quiz/:quizId/result/:attemptId', requireStudent, wrap(async
       correct: a ? a.correct === true : false,
       awarded: a ? (a.awarded || 0) : 0,
       points: q.points || 1,
-      your: fmtResponse(rq, resp),
-      right: fmtCorrect(rq),
+      your: quizLib.fmtResponse(rq, resp),
+      right: quizLib.fmtCorrect(rq),
       texts: fbs.filter((f) => f.kind === 'text').map((f) => f.content),
       resources: fbs.filter((f) => f.kind !== 'text'),
     };

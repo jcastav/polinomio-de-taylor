@@ -1,0 +1,40 @@
+<%- include('../partials/admin-nav', { nav: 'dash' }) %>
+
+<div class="eyebrow">
+  <span>Revisión de intento</span>
+  <span class="meta">Intento #<%= attempt.id %></span>
+</div>
+
+<h1><%= attempt.quizTitle %></h1>
+
+<div class="defbox">
+  <b>Resultado</b>
+  Estudiante: <%= attempt.studentName %> ·
+  Nota: <%= attempt.status === 'in_progress' ? '—' : `${attempt.score} / ${attempt.max_score}` %> ·
+  Estado: <%= attempt.status === 'in_progress' ? 'En curso' : (attempt.passed ? 'Aprobado' : 'Suspendido') %> ·
+  Fecha: <%= fecha %>
+</div>
+
+<table class="dense">
+  <thead>
+    <tr><th>#</th><th>Pregunta</th><th>Tu respuesta</th><th>Correcta</th><th>Puntos</th></tr>
+  </thead>
+  <tbody>
+    <% items.forEach((it) => { %>
+    <tr>
+      <td><%= it.n %></td>
+      <td><%= it.prompt %><br><span class="muted"><%= it.typeName %></span></td>
+      <td><%= it.your %></td>
+      <td><%= it.correct ? '✓ ' + it.right : it.right %></td>
+      <td><%= it.awarded %> / <%= it.points %></td>
+    </tr>
+    <% }) %>
+  </tbody>
+</table>
+
+<div class="result-actions">
+  <% if (attempt.users) { %>
+  <a class="btn" href="/admin/students/<%= attempt.user_id %>">Ver estudiante</a>
+  <% } %>
+  <a class="btn btn-dark" href="/admin">Volver al dashboard</a>
+</div>

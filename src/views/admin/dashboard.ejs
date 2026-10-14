@@ -1,0 +1,42 @@
+<%- include('../partials/admin-nav', { nav: 'dash' }) %>
+
+<div class="eyebrow">
+  <span>Panel admin</span>
+  <span class="meta">Resumen general</span>
+</div>
+
+<h1>Dashboard</h1>
+
+<div class="stat-cards">
+  <div class="panel-box stat-card"><span>Cursos</span><b><%= counts.courses %></b></div>
+  <div class="panel-box stat-card"><span>Estudiantes</span><b><%= counts.students %></b></div>
+  <div class="panel-box stat-card"><span>Intentos hoy</span><b><%= counts.attemptsToday %></b></div>
+</div>
+
+<div class="result-actions">
+  <a class="btn btn-dark" href="/admin/courses">Gestionar cursos</a>
+  <a class="btn btn-accent" href="/admin/students">Nuevo estudiante</a>
+</div>
+
+<h2>Últimos intentos</h2>
+
+<% if (last.length) { %>
+<table class="dense">
+  <thead>
+    <tr><th>Fecha</th><th>Estudiante</th><th>Quiz</th><th>Nota</th><th>Estado</th></tr>
+  </thead>
+  <tbody>
+    <% last.forEach((a) => { %>
+    <tr>
+      <td><a href="/admin/attempts/<%= a.id %>"><%= formatFecha(a.started_at) %></a></td>
+      <td><%= a.users ? a.users.name : '—' %></td>
+      <td><%= a.quizzes ? a.quizzes.title : '—' %></td>
+      <td><%= a.status === 'in_progress' ? '—' : `${a.score} / ${a.max_score}` %></td>
+      <td><%= a.status === 'in_progress' ? 'En curso' : (a.passed ? 'Aprobado' : 'Suspendido') %></td>
+    </tr>
+    <% }) %>
+  </tbody>
+</table>
+<% } else { %>
+<div class="defbox"><b>Sin actividad</b>Todavía no hay intentos registrados.</div>
+<% } %>

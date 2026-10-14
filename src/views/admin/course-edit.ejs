@@ -1,0 +1,124 @@
+<%- include('../partials/admin-nav', { nav: 'courses' }) %>
+
+<div class="eyebrow">
+  <span>Editar curso</span>
+  <span class="meta"><%= course.published ? 'Publicado' : 'Borrador' %></span>
+</div>
+
+<h1><%= values.title || course.title %></h1>
+
+<form class="panel-box" method="post" action="/admin/courses/<%= course.id %>">
+  <div class="form-row">
+    <label for="title">Título</label>
+    <input id="title" type="text" name="title" maxlength="150" required
+           value="<%= values.title || course.title %>">
+    <% if (errors.title) { %><span class="field-error"><%= errors.title %></span><% } %>
+  </div>
+  <div class="form-row">
+    <label for="slug">Slug</label>
+    <input id="slug" type="text" name="slug" maxlength="150" required
+           value="<%= values.slug || course.slug %>">
+    <% if (errors.slug) { %><span class="field-error"><%= errors.slug %></span><% } %>
+  </div>
+  <div class="form-row">
+    <label for="description">Descripción</label>
+    <textarea id="description" name="description" rows="3"
+              maxlength="2000"><%= values.description || course.description %></textarea>
+    <% if (errors.description) { %><span class="field-error"><%= errors.description %></span><% } %>
+  </div>
+  <div class="form-row form-check">
+    <label><input type="checkbox" name="published"
+      <%= (values.published !== undefined ? values.published : course.published) ? 'checked' : '' %>>
+      Publicado (visible para estudiantes)</label>
+  </div>
+  <div class="result-actions">
+    <button class="btn btn-dark" type="submit">Guardar cambios</button>
+  </div>
+</form>
+
+<div class="result-actions">
+  <form method="post" action="/admin/courses/<%= course.id %>/publish">
+    <button class="btn" type="submit"><%= course.published ? 'Despublicar' : 'Publicar' %></button>
+  </form>
+  <form method="post" action="/admin/courses/<%= course.id %>/delete"
+        onsubmit="return confirm('¿Eliminar el curso y todo su contenido?')">
+    <button class="btn btn-accent" type="submit">Eliminar curso</button>
+  </form>
+</div>
+
+<h2>Módulos</h2>
+
+<% if (tree.length) { %>
+<% tree.forEach((m, mi) => { %>
+<div class="panel-box">
+  <div class="modline">
+    <form class="form-inline" method="post" action="/admin/modules/<%= m.id %>">
+      <input type="text" name="title" maxlength="150" value="<%= m.title %>" aria-label="Título del módulo">
+      <button class="btn btn-sm" type="submit">Renombrar</button>
+    </form>
+    <span class="modline-actions">
+      <form method="post" action="/admin/modules/<%= m.id %>/reorder">
+        <button class="btn btn-sm" type="submit" name="dir" value="up" <%= mi === 0 ? 'disabled' : '' %>>▲</button>
+      </form>
+      <form method="post" action="/admin/modules/<%= m.id %>/reorder">
+        <button class="btn btn-sm" type="submit" name="dir" value="down" <%= mi === tree.length - 1 ? 'disabled' : '' %>>▼</button>
+      </form>
+      <form method="post" action="/admin/modules/<%= m.id %>/delete"
+            onsubmit="return confirm('¿Eliminar el módulo y sus lecciones?')">
+        <button class="btn btn-sm btn-accent" type="submit">Eliminar</button>
+      </form>
+    </span>
+  </div>
+
+  <ul class="adm-list">
+    <% m.lessons.forEach((l) => { %>
+    <li>
+      <a href="/admin/lessons/<%= l.id %>"><%= l.title %></a>
+      <form method="post" action="/admin/lessons/<%= l.id %>/delete"
+            onsubmit="return confirm('¿Eliminar la lección?')">
+        <button class="btn btn-sm btn-accent" type="submit">Eliminar</button>
+      </form>
+    </li>
+    <% }) %>
+    <% if (!m.lessons.length) { %><li class="muted">Sin lecciones todavía.</li><% } %>
+  </ul>
+
+  <form class="form-inline" method="post" action="/admin/modules/<%= m.id %>/lessons">
+    <input type="text" name="title" maxlength="150" placeholder="Título de la nueva lección" required>
+    <button class="btn btn-sm" type="submit">Añadir lección</button>
+  </form>
+
+  <p class="mod-quiz">
+    <% if (m.quiz) { %>
+    <a class="btn btn-sm btn-dark" href="/admin/quizzes/<%= m.quiz.id %>">Editar quiz del módulo</a>
+    <% } else { %>
+    <form class="form-inline" method="post" action="/admin/courses/<%= course.id %>/quizzes">
+      <input type="hidden" name="kind" value="quiz">
+      <input type="hidden" name="module_id" value="<%= m.id %>">
+      <button class="btn btn-sm" type="submit">Crear quiz del módulo</button>
+    </form>
+    <% } %>
+  </p>
+</div>
+<% }) %>
+<% } else { %>
+<div class="defbox"><b>Sin módulos</b>Añade el primer módulo con el formulario de abajo.</div>
+<% } %>
+
+<form class="panel-box form-inline" method="post" action="/admin/courses/<%= course.id %>/modules">
+  <input type="text" name="title" maxlength="150" placeholder="Título del nuevo módulo" required>
+  <button class="btn btn-dark" type="submit">Añadir módulo</button>
+</form>
+
+<h2>Examen final</h2>
+
+<% if (exam) { %>
+<div class="result-actions">
+  <a class="btn btn-dark" href="/admin/quizzes/<%= exam.id %>">Editar examen final</a>
+</div>
+<% } else { %>
+<form class="form-inline" method="post" action="/admin/courses/<%= course.id %>/quizzes">
+  <input type="hidden" name="kind" value="exam">
+  <button class="btn" type="submit">Configurar examen final</button>
+</form>
+<% } %>

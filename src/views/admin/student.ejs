@@ -1,0 +1,40 @@
+<%- include('../partials/admin-nav', { nav: 'students' }) %>
+
+<div class="eyebrow">
+  <span>Estudiante</span>
+  <span class="meta"><%= student.email || 'sin correo' %></span>
+</div>
+
+<h1><%= student.name %></h1>
+
+<div class="stat-cards">
+  <div class="panel-box stat-card"><span>Lecciones vistas</span><b><%= lessonsDone %></b></div>
+  <div class="panel-box stat-card"><span>Intentos</span><b><%= attempts.length %></b></div>
+</div>
+
+<h2>Intentos</h2>
+
+<% if (attempts.length) { %>
+<table class="dense">
+  <thead>
+    <tr><th>Fecha</th><th>Quiz</th><th>Nota</th><th>Estado</th><th></th></tr>
+  </thead>
+  <tbody>
+    <% attempts.forEach((a) => { %>
+    <tr>
+      <td><%= a.fecha %></td>
+      <td><%= a.quizTitle %></td>
+      <td><%= a.status === 'in_progress' ? '—' : `${a.score} / ${a.max_score}` %></td>
+      <td><%= a.status === 'in_progress' ? 'En curso' : (a.passed ? 'Aprobado' : 'Suspendido') %></td>
+      <td><a class="btn btn-sm" href="/admin/attempts/<%= a.id %>">Revisar</a></td>
+    </tr>
+    <% }) %>
+  </tbody>
+</table>
+<% } else { %>
+<div class="defbox"><b>Sin intentos</b>Este estudiante aún no ha enviado quizzes.</div>
+<% } %>
+
+<div class="result-actions">
+  <a class="btn" href="/admin/students">Volver a estudiantes</a>
+</div>

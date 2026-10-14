@@ -6,6 +6,7 @@ const express = require('express');
 const { sessionMiddleware, loadUser } = require('./lib/auth');
 const authRoutes = require('./routes/auth');
 const studentRoutes = require('./routes/student');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +21,7 @@ app.use(loadUser);
 
 app.use('/', studentRoutes);
 app.use('/', authRoutes);
+app.use('/admin', adminRoutes);
 
 app.use((req, res) => {
   res.status(404).send('No encontrado');

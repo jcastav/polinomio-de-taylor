@@ -1,0 +1,47 @@
+<%- include('../partials/admin-nav', { nav: 'courses' }) %>
+
+<div class="eyebrow">
+  <span>Panel admin</span>
+  <span class="meta"><%= courses.length %> cursos</span>
+</div>
+
+<h1>Cursos</h1>
+
+<% if (courses.length) { %>
+<table class="dense">
+  <thead>
+    <tr><th>Título</th><th>Slug</th><th>Módulos</th><th>Estado</th><th></th></tr>
+  </thead>
+  <tbody>
+    <% courses.forEach((c) => { %>
+    <tr>
+      <td><a href="/admin/courses/<%= c.id %>"><%= c.title %></a></td>
+      <td><code><%= c.slug %></code></td>
+      <td><%= c.modules %></td>
+      <td><%= c.published ? 'Publicado' : 'Borrador' %></td>
+      <td><a class="btn btn-sm" href="/admin/courses/<%= c.id %>">Editar</a></td>
+    </tr>
+    <% }) %>
+  </tbody>
+</table>
+<% } else { %>
+<div class="defbox"><b>Sin cursos</b>Crea el primer curso del aula.</div>
+<% } %>
+
+<h2>Crear curso</h2>
+
+<form class="panel-box" method="post" action="/admin/courses">
+  <div class="form-row">
+    <label for="c-title">Título</label>
+    <input id="c-title" type="text" name="title" maxlength="150" required
+           value="<%= values.title || '' %>">
+    <% if (errors.title) { %><span class="field-error"><%= errors.title %></span><% } %>
+  </div>
+  <div class="form-row">
+    <label for="c-slug">Slug (opcional — se genera solo)</label>
+    <input id="c-slug" type="text" name="slug" maxlength="150"
+           placeholder="mi-curso" value="<%= values.slug || '' %>">
+    <% if (errors.slug) { %><span class="field-error"><%= errors.slug %></span><% } %>
+  </div>
+  <button class="btn btn-dark" type="submit">Crear curso</button>
+</form>

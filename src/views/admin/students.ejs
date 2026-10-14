@@ -1,0 +1,53 @@
+<%- include('../partials/admin-nav', { nav: 'students' }) %>
+
+<div class="eyebrow">
+  <span>Panel admin</span>
+  <span class="meta"><%= students.length %> estudiantes</span>
+</div>
+
+<h1>Estudiantes</h1>
+
+<% if (students.length) { %>
+<table class="dense">
+  <thead>
+    <tr><th>Nombre</th><th>Correo</th><th>Lecciones vistas</th><th>Media notas</th><th></th></tr>
+  </thead>
+  <tbody>
+    <% students.forEach((s) => { %>
+    <tr>
+      <td><a href="/admin/students/<%= s.id %>"><%= s.name %></a></td>
+      <td><%= s.email || '—' %></td>
+      <td><%= s.lessons %></td>
+      <td><%= s.avg == null ? '—' : s.avg + '%' %></td>
+      <td><a class="btn btn-sm" href="/admin/students/<%= s.id %>">Ver</a></td>
+    </tr>
+    <% }) %>
+  </tbody>
+</table>
+<% } else { %>
+<div class="defbox"><b>Sin estudiantes</b>Crea el primero con el formulario de abajo.</div>
+<% } %>
+
+<h2>Crear estudiante</h2>
+
+<form class="panel-box" method="post" action="/admin/students">
+  <div class="form-row">
+    <label for="s-name">Nombre (identificador para entrar)</label>
+    <input id="s-name" type="text" name="name" maxlength="100" required
+           value="<%= values.name || '' %>">
+    <% if (errors.name) { %><span class="field-error"><%= errors.name %></span><% } %>
+  </div>
+  <div class="form-row">
+    <label for="s-email">Correo (opcional)</label>
+    <input id="s-email" type="email" name="email" maxlength="200"
+           value="<%= values.email || '' %>">
+    <% if (errors.email) { %><span class="field-error"><%= errors.email %></span><% } %>
+  </div>
+  <div class="form-row">
+    <label for="s-pass">Contraseña temporal (mínimo 8)</label>
+    <input id="s-pass" type="text" name="password" maxlength="200" required
+           autocomplete="off" placeholder="clave1234">
+    <% if (errors.password) { %><span class="field-error"><%= errors.password %></span><% } %>
+  </div>
+  <button class="btn btn-dark" type="submit">Crear estudiante</button>
+</form>

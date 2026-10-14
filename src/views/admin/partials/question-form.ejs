@@ -1,0 +1,105 @@
+<%
+  // Formulario de pregunta (añadir o editar).
+  // Params: action, q (null en modo añadir), nav igual para ambas vistas.
+  let p = {};
+  if (q) { try { p = JSON.parse(q.payload); } catch (e) { p = {}; } }
+  const t = q ? q.type : (values.type || 'single');
+  const opts = (p.options && p.options.length) ? p.options : ['', ''];
+  const correctSet = new Set(
+    t === 'single' ? [p.correct] : (Array.isArray(p.correct) ? p.correct : [])
+  );
+%>
+<form class="qform" method="post" action="<%= action %>">
+  <% if (q) { %><input type="hidden" name="type" value="<%= q.type %>"><% } %>
+
+  <div class="form-row">
+    <label>Enunciado</label>
+    <textarea name="prompt" rows="2" required
+              maxlength="2000"><%= q ? q.prompt : (values.prompt || '') %></textarea>
+  </div>
+
+  <div class="form-row qform-row2">
+    <div>
+      <% if (!q) { %>
+      <label>Tipo de pregunta</label>
+      <select name="type" data-type-select>
+        <% Object.keys(TYPE_NAMES).forEach((k) => { %>
+        <option value="<%= k %>"<%= t === k ? ' selected' : '' %>><%= TYPE_NAMES[k] %></option>
+        <% }) %>
+      </select>
+      <% } else { %>
+      <label>Tipo</label>
+      <input type="text" value="<%= TYPE_NAMES[q.type] %>" disabled>
+      <% } %>
+    </div>
+    <div>
+      <label>Puntos</label>
+      <input type="number" name="points" min="1" max="100" step="1"
+             value="<%= q ? q.points : (values.points || 1) %>">
+    </div>
+  </div>
+
+  <!-- single / multiple -->
+  <div class="qtype-panel" data-panel="single multiple">
+    <label class="panel-label">Opciones — marca la correcta</label>
+    <div data-opt-list>
+      <% opts.forEach((o, i) => { %>
+      <div class="opt-row">
+        <input type="text" name="opt" maxlength="300" value="<%= o %>"
+               placeholder="Opción <%= i + 1 %>">
+        <label class="opt-correct">
+          <input type="<%= t === 'multiple' ? 'checkbox' : 'radio' %>"
+                 name="correct" value="<%= i %>"<%= correctSet.has(i) ? ' checked' : '' %>>
+          correcta
+        </label>
+        <button type="button" class="btn btn-sm" data-del-opt>Quitar</button>
+      </div>
+      <% }) %>
+    </div>
+    <button type="button" class="btn btn-sm" data-add-opt>Añadir opción</button>
+  </div>
+
+  <!-- truefalse -->
+  <div class="qtype-panel" data-panel="truefalse">
+    <label class="panel-label">Respuesta correcta</label>
+    <select name="tf">
+      <option value="true"<%= p.correct === true ? ' selected' : '' %>>Verdadero</option>
+      <option value="false"<%= p.correct === false || p.correct === undefined ? ' selected' : '' %>>Falso</option>
+    </select>
+  </div>
+
+  <!-- short -->
+  <div class="qtype-panel" data-panel="short">
+    <label class="panel-label">Respuestas aceptadas (una por línea)</label>
+    <textarea name="accepted" rows="3" maxlength="2000"><%= (p.accepted || []).join('\n') %></textarea>
+    <label class="form-check">
+      <input type="checkbox" name="case_sensitive"<%= p.case_sensitive ? ' checked' : '' %>>
+      Distinguir mayúsculas
+    </label>
+  </div>
+
+  <!-- match -->
+  <div class="qtype-panel" data-panel="match">
+    <div class="qform-row2">
+      <div>
+        <label class="panel-label">Columna izquierda (una por línea)</label>
+        <textarea name="left" rows="4" maxlength="4000"><%= (p.left || []).join('\n') %></textarea>
+      </div>
+      <div>
+        <label class="panel-label">Columna derecha (una por línea)</label>
+        <textarea name="right" rows="4" maxlength="4000"><%= (p.right || []).join('\n') %></textarea>
+      </div>
+    </div>
+    <span class="field-hint">La línea N de cada columna forman la pareja N. Misma cantidad de líneas.</span>
+  </div>
+
+  <!-- order -->
+  <div class="qtype-panel" data-panel="order">
+    <label class="panel-label">Elementos en el orden correcto (una por línea)</label>
+    <textarea name="items" rows="4" maxlength="4000"><%= (p.items || []).join('\n') %></textarea>
+  </div>
+
+  <div class="result-actions">
+    <button class="btn btn-dark" type="submit"><%= q ? 'Guardar cambios' : 'Añadir pregunta' %></button>
+  </div>
+</form>

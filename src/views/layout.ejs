@@ -35,8 +35,9 @@
 
 <%
   var isBare = typeof bare !== 'undefined' && bare;
+  var isWide = typeof wide !== 'undefined' && wide;
 %>
-<div class="layout<%= isBare ? ' layout--bare' : '' %>">
+<div class="layout<%= isBare ? ' layout--bare' : '' %><%= isWide ? ' layout--wide' : '' %>">
 
   <% if (!isBare) { %>
   <aside class="sidebar" id="sidebar">
@@ -61,5 +62,6 @@
 <script src="/js/nav.js"></script>
 <script src="/js/quiz.js"></script>
 <script src="/js/modal.js"></script>
+<script src="/js/admin.js"></script>
 </body>
 </html>

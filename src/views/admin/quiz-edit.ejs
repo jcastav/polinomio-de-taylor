@@ -1,0 +1,114 @@
+<%- include('../partials/admin-nav', { nav: 'courses' }) %>
+
+<div class="eyebrow">
+  <span><%= quiz.kind === 'exam' ? 'Examen final' : 'Quiz del módulo' %></span>
+  <span class="meta"><%= questions.length %> preguntas · <%= course.title %></span>
+</div>
+
+<h1><%= values.title || quiz.title %></h1>
+
+<% if (typeof errorMsg !== 'undefined' && errorMsg) { %>
+<div class="defbox"><b>Error</b><%= errorMsg %></div>
+<% } %>
+
+<form class="panel-box" method="post" action="/admin/quizzes/<%= quiz.id %>">
+  <div class="form-row">
+    <label for="q-title">Título</label>
+    <input id="q-title" type="text" name="title" maxlength="150" required
+           value="<%= values.title || quiz.title %>">
+    <% if (errors.title) { %><span class="field-error"><%= errors.title %></span><% } %>
+  </div>
+  <div class="qform-row2">
+    <div class="form-row">
+      <label for="q-time">Límite de tiempo (min — vacío = sin límite)</label>
+      <input id="q-time" type="number" name="time_limit_min" min="1" max="600"
+             value="<%= values.time_limit_min !== undefined ? values.time_limit_min : (quiz.time_limit_min || '') %>">
+      <% if (errors.time_limit_min) { %><span class="field-error"><%= errors.time_limit_min %></span><% } %>
+    </div>
+    <div class="form-row">
+      <label for="q-att">Intentos máximos</label>
+      <input id="q-att" type="number" name="max_attempts" min="1" max="10" required
+             value="<%= values.max_attempts || quiz.max_attempts %>">
+      <% if (errors.max_attempts) { %><span class="field-error"><%= errors.max_attempts %></span><% } %>
+    </div>
+    <div class="form-row">
+      <label for="q-pass">Nota mínima (%)</label>
+      <input id="q-pass" type="number" name="pass_score" min="1" max="100" required
+             value="<%= values.pass_score || quiz.pass_score %>">
+      <% if (errors.pass_score) { %><span class="field-error"><%= errors.pass_score %></span><% } %>
+    </div>
+  </div>
+  <label class="form-check">
+    <input type="checkbox" name="shuffle"
+      <%= (values.shuffle !== undefined ? values.shuffle : quiz.shuffle) ? 'checked' : '' %>>
+    Barajar orden de preguntas y opciones
+  </label>
+  <div class="result-actions">
+    <button class="btn btn-dark" type="submit">Guardar metadata</button>
+    <a class="btn" href="/c/<%= course.slug %>/quiz/<%= quiz.id %>" target="_blank">Probar este quiz</a>
+  </div>
+</form>
+
+<h2>Preguntas</h2>
+
+<% if (!questions.length) { %>
+<div class="defbox"><b>Sin preguntas</b>Añade la primera pregunta con el formulario de abajo.</div>
+<% } %>
+
+<% questions.forEach((q, i) => { %>
+<div class="panel-box qbox">
+  <div class="qbox-head">
+    <span>Pregunta <%= i + 1 %> · <%= TYPE_NAMES[q.type] %> · <%= q.points %> pts</span>
+    <form method="post" action="/admin/questions/<%= q.id %>/delete"
+          onsubmit="return confirm('¿Eliminar la pregunta y sus respuestas?')">
+      <button class="btn btn-sm btn-accent" type="submit">Eliminar</button>
+    </form>
+  </div>
+
+  <details>
+    <summary>Editar pregunta</summary>
+    <%- include('./partials/question-form', { action: `/admin/questions/${q.id}`, q }) %>
+  </details>
+
+  <h3 class="fb-title">Retroalimentación</h3>
+  <% const rows = feedback.filter((f) => Number(f.question_id) === Number(q.id)); %>
+  <% if (rows.length) { %>
+  <ul class="adm-list">
+    <% rows.forEach((f) => { %>
+    <li>
+      <span class="fb-kind"><%= f.kind %></span>
+      <span class="fb-content"><%= f.content.length > 90 ? f.content.slice(0, 90) + '…' : f.content %></span>
+      <form method="post" action="/admin/feedback/<%= f.id %>/delete">
+        <button class="btn btn-sm btn-accent" type="submit">Quitar</button>
+      </form>
+    </li>
+    <% }) %>
+  </ul>
+  <% } else { %>
+  <p class="muted">Sin recursos todavía (solo se muestran al estudiante si falla).</p>
+  <% } %>
+
+  <form class="form-inline fb-add" method="post" action="/admin/questions/<%= q.id %>/feedback">
+    <select name="kind" data-fb-kind>
+      <option value="text">Texto</option>
+      <option value="video">Vídeo</option>
+      <option value="link">Enlace</option>
+      <option value="image">Imagen</option>
+    </select>
+    <input type="text" name="content" maxlength="5000"
+           placeholder="Texto, URL del recurso…" data-fb-content>
+    <label class="btn btn-sm fb-upload" hidden>
+      Subir archivo
+      <input type="file" accept="image/*,video/*" data-fb-file hidden>
+    </label>
+    <button class="btn btn-sm" type="submit">Añadir recurso</button>
+    <span class="field-hint" data-fb-status></span>
+  </form>
+</div>
+<% }) %>
+
+<h2>Añadir pregunta</h2>
+<div class="panel-box">
+  <%- include('./partials/question-form', { action: `/admin/quizzes/${quiz.id}/questions`, q: null }) %>
+</div>
+
