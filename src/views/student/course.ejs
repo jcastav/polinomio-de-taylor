@@ -1,0 +1,39 @@
+<div class="eyebrow">
+  <span>Curso</span>
+  <span class="meta"><%= stats.total %> lecciones · <%= stats.percent %>% completado</span>
+</div>
+
+<h1><%= course.title %></h1>
+<p class="lede"><%= course.description %></p>
+
+<h2>Módulos</h2>
+
+<% if (tree.length) { %>
+<table class="dense">
+  <thead>
+    <tr><th>Módulo</th><th>Lecciones</th><th>Progreso</th></tr>
+  </thead>
+  <tbody>
+    <% tree.forEach((mod) => { %>
+    <tr>
+      <td><%= mod.title %></td>
+      <td><%= mod.lessons.length %></td>
+      <td><%= mod.lessons.filter((l) => l.done).length %> / <%= mod.lessons.length %></td>
+    </tr>
+    <% }) %>
+  </tbody>
+</table>
+<% } else { %>
+<div class="defbox">
+  <b>Sin contenido</b>
+  Este curso aún no tiene módulos.
+  <% if (user && user.role === 'admin') { %>(Añádelos desde el panel de administración.)<% } %>
+</div>
+<% } %>
+
+<% if (nextLesson) { %>
+<div class="defbox">
+  <b>Continuar</b>
+  <a href="/c/<%= course.slug %>/l/<%= nextLesson.id %>"><%= nextLesson.title %></a>
+</div>
+<% } %>

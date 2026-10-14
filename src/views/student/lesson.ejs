@@ -1,0 +1,26 @@
+<div class="eyebrow">
+  <span><%= module.title %> · Lección <%= lesson.position %></span>
+  <span class="meta"><%= stats.done %> / <%= stats.total %> completadas</span>
+</div>
+
+<h1><%= lesson.title %></h1>
+
+<div class="lesson-body">
+  <%- lesson.html %>
+</div>
+
+<div class="lesson-foot">
+  <% if (!completed) { %>
+  <form method="post" action="/c/<%= course.slug %>/l/<%= lesson.id %>/complete">
+    <button class="btn btn-accent" type="submit">Marcar como completada</button>
+  </form>
+  <% } else { %>
+  <span class="lesson-done">✓ Completada</span>
+  <% } %>
+
+  <% if (next) { %>
+  <a class="btn btn-dark" href="/c/<%= course.slug %>/l/<%= next.id %>">Siguiente lección</a>
+  <% } else { %>
+  <a class="btn" href="/c/<%= course.slug %>">Volver al curso</a>
+  <% } %>
+</div>

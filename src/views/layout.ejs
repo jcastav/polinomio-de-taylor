@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= typeof title !== 'undefined' ? title : 'Aula' %></title>
+<link rel="stylesheet" href="/css/tokens.css">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+
+<header class="topbar">
+  <button class="hamburger" id="navBtn" aria-label="Menú">☰</button>
+  <div class="brand">Aula<span>·</span>v1</div>
+  <nav class="crumbs">
+    <% if (typeof crumbs !== 'undefined' && crumbs) { %><%- crumbs %><% } else { %>Curso<% } %>
+  </nav>
+  <% if (user) { %>
+  <form method="post" action="/logout" class="topbar-form">
+    <button class="btn btn-ghost" type="submit">Salir</button>
+  </form>
+  <div class="userchip">
+    <span class="dot"><%= user.name.substring(0, 2).toUpperCase() %></span>
+    <span class="name"><%= user.name %></span>
+  </div>
+  <% } else { %>
+  <div class="userchip">
+    <span class="dot">–</span>
+    <span class="name">Invitado</span>
+  </div>
+  <% } %>
+</header>
+
+<%
+  var isBare = typeof bare !== 'undefined' && bare;
+%>
+<div class="layout<%= isBare ? ' layout--bare' : '' %>">
+
+  <% if (!isBare) { %>
+  <aside class="sidebar" id="sidebar">
+    <%- include('partials/sidebar-tree') %>
+  </aside>
+  <% } %>
+
+  <main class="content">
+    <%- include(view) %>
+  </main>
+
+  <% if (!isBare) { %>
+  <aside class="rail">
+    <%- include('partials/rail') %>
+  </aside>
+  <% } %>
+
+</div>
+
+<div class="backdrop" id="backdrop"></div>
+
+<script src="/js/nav.js"></script>
+</body>
+</html>

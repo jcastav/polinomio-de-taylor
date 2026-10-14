@@ -1,0 +1,6 @@
+node_modules/
+.env
+*.log
+PLAN.md
+design/reference.html
+supabase/schema.sql

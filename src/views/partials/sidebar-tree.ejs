@@ -1,0 +1,32 @@
+<div class="side-head">Contenido del curso</div>
+
+<% if (typeof tree !== 'undefined' && tree && tree.length) { %>
+<div class="side-progress">
+  <div class="bar"><i style="width:<%= stats.percent %>%"></i></div>
+  <div class="txt"><span>Progreso</span><span><%= stats.done %> / <%= stats.total %></span></div>
+</div>
+
+<% tree.forEach((mod) => { %>
+<div class="mod">
+  <button type="button"><%= mod.title %> <span class="caret">▼</span></button>
+  <ul>
+    <% mod.lessons.forEach((l) => { %>
+    <% const esActual = currentLessonId === l.id; %>
+    <li>
+      <a href="/c/<%= course.slug %>/l/<%= l.id %>"
+         class="<%= l.done ? 'done ' : '' %><%= esActual ? 'current' : '' %>">
+        <% if (l.done) { %><span class="st">✓</span><% } else if (!esActual) { %><span class="st">○</span><% } %>
+        <%= l.title %>
+      </a>
+    </li>
+    <% }) %>
+  </ul>
+</div>
+<% }) %>
+
+<% } else { %>
+<div class="side-progress">
+  <div class="bar"><i style="width:0%"></i></div>
+  <div class="txt"><span>Progreso</span><span>0 / 0</span></div>
+</div>
+<% } %>

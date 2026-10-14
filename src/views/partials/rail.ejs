@@ -1,0 +1,31 @@
+<% if (typeof stats !== 'undefined' && stats) { %>
+<div class="card">
+  <h3>Tu progreso</h3>
+  <div class="body">
+    <div class="stat"><span>Lecciones</span><b><%= stats.done %> / <%= stats.total %></b></div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Siguiente</h3>
+  <ul class="nextlist body">
+    <% if (nextLesson) { %>
+    <li><span class="lbl">Lección</span> <a href="/c/<%= course.slug %>/l/<%= nextLesson.id %>"><%= nextLesson.title %></a></li>
+    <% } else if (stats.total > 0) { %>
+    <li><span class="lbl">Estado</span> Todas las lecciones completadas</li>
+    <% } else { %>
+    <li><span class="lbl">Estado</span> Sin lecciones todavía</li>
+    <% } %>
+  </ul>
+</div>
+<% } %>
+
+<% if (user && user.role === 'admin') { %>
+<div class="card">
+  <h3>Panel admin</h3>
+  <div class="body">
+    <p>Como administradora puedes editar lecciones, preguntas y el orden de los módulos.</p>
+    <a class="btn btn-accent" style="width:100%; justify-content:center;" href="/admin">Abrir editor</a>
+  </div>
+</div>
+<% } %>
