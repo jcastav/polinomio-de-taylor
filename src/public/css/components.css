@@ -326,3 +326,150 @@ table.dense tr:nth-child(even) td{ background:#faf7f0; }
   font:700 11px/1 Tahoma, sans-serif;
   letter-spacing:.1em; text-transform:uppercase;
 }
+
+/* ---------- QUIZ: emparejamiento y orden ---------- */
+.match-row{
+  display:flex; align-items:center; gap:10px;
+  padding:7px 10px;
+  border:1px solid var(--line-soft); border-top:0;
+  background:#fff;
+}
+.match-row:first-child{ border-top:1px solid var(--line-soft); }
+.match-l{ flex:1; font:400 13.5px/1.45 Georgia, serif; }
+.match-arrow{ color:var(--accent); font-weight:700; }
+.match-row select{
+  min-width:170px; max-width:55%;
+  padding:5px 7px;
+  border:1px solid var(--line); background:#fff;
+  font:400 13px Georgia, serif; color:var(--ink);
+}
+
+.order-list{ list-style:none; margin:0 0 12px; padding:0; }
+.order-list li{
+  display:flex; align-items:center; gap:10px;
+  padding:7px 10px;
+  border:1px solid var(--line-soft); border-top:0;
+  background:#fff;
+  font:400 13.5px/1.45 Georgia, serif;
+}
+.order-list li:first-child{ border-top:1px solid var(--line-soft); }
+.order-list .ord-txt{ flex:1; }
+.order-list .ord-btns{ display:flex; gap:4px; }
+.ord-up, .ord-down{
+  width:26px; height:22px; padding:0;
+  border:1px solid var(--line); background:var(--panel);
+  color:var(--ink); font-size:9px; line-height:1;
+  cursor:pointer;
+}
+.ord-up:hover, .ord-down:hover{ background:var(--hl); }
+
+/* ---------- RESULTADOS (§9.6) ---------- */
+.result-score{
+  display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
+  margin:0 0 16px;
+}
+.result-score .big{
+  font:700 34px/1 Tahoma, Verdana, sans-serif;
+  letter-spacing:-.01em;
+}
+.result-score .pct{
+  font:700 15px/1 Tahoma, sans-serif;
+  color:var(--muted);
+}
+.result-score .meta-note{
+  font-size:11.5px; color:var(--muted);
+}
+
+.verdict{
+  display:inline-block;
+  padding:3px 7px;
+  border:1px solid;
+  font:700 10px/1 Tahoma, sans-serif;
+  letter-spacing:.12em; text-transform:uppercase;
+}
+.verdict.ok{ color:#1f5c2e; border-color:#1f5c2e; background:#e7f1e7; }
+.verdict.bad{ color:#8a1f11; border-color:var(--accent); background:#f7e7e2; }
+
+.qres{ padding:14px 14px 12px; border-bottom:1px solid var(--line-soft); }
+.qres:last-child{ border-bottom:0; }
+.qres .qn{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  font:700 10px/1 Tahoma, sans-serif;
+  letter-spacing:.14em; text-transform:uppercase;
+  color:var(--accent); margin-bottom:6px;
+}
+.qres .qt{
+  font:400 14.5px/1.5 Georgia, serif; margin:0 0 8px;
+}
+.qres .ans{
+  margin:0 0 6px;
+  font:400 13.5px/1.5 Georgia, serif;
+}
+.qres .ans b{
+  font:700 10px/1 Tahoma, sans-serif;
+  letter-spacing:.1em; text-transform:uppercase;
+  color:var(--muted); margin-right:6px;
+}
+
+.fb{
+  border-left:3px solid var(--accent);
+  background:var(--hl);
+  padding:10px 12px;
+  margin:10px 0;
+  font:400 13.5px/1.55 Georgia, serif;
+}
+.fb b{
+  display:block;
+  font:700 10px/1 Tahoma, sans-serif;
+  letter-spacing:.14em; text-transform:uppercase;
+  color:var(--accent); margin-bottom:5px;
+}
+.fb p{ margin:0 0 6px; }
+.fb p:last-child{ margin:0; }
+
+.result-actions{
+  display:flex; gap:10px; flex-wrap:wrap;
+  margin-top:16px;
+}
+
+/* ---------- MODAL (§9.6) ---------- */
+.modal-backdrop{
+  position:fixed; inset:0; z-index:70;
+  background:rgba(0,0,0,.55);
+  display:none;
+}
+.modal{
+  position:fixed; z-index:71;
+  top:50%; left:50%; transform:translate(-50%,-50%);
+  width:min(680px, 92vw);
+  max-height:86vh; overflow:auto;
+  background:var(--panel);
+  border:1px solid #2a2a2a;
+  display:none;
+}
+body.modal-open{ overflow:hidden; }
+body.modal-open .modal-backdrop{ display:block; }
+body.modal-open .modal.is-open{ display:block; }
+
+.modal-head{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:9px 12px;
+  background:#2a2a2a; color:#f3efe6;
+  border-bottom:2px solid var(--accent);
+  font:700 11px/1 Tahoma, sans-serif;
+  letter-spacing:.14em; text-transform:uppercase;
+}
+.modal-close{
+  padding:5px 9px;
+  background:transparent; border:1px solid #5a5448; color:#f3efe6;
+  font:700 10px/1 Tahoma, sans-serif;
+  letter-spacing:.1em; text-transform:uppercase;
+  cursor:pointer;
+}
+.modal-close:hover{ background:#000; }
+.modal-body{ padding:14px; }
+.modal-body img, .modal-body video{ max-width:100%; display:block; }
+.modal-body iframe{
+  width:100%; aspect-ratio:16/9;
+  border:0; display:block;
+}

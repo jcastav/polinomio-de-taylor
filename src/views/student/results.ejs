@@ -1,0 +1,85 @@
+<div class="eyebrow">
+  <span>Resultados · <%= quiz.title %></span>
+  <span class="meta">Intento <%= attemptNo %> de <%= quiz.max_attempts %></span>
+</div>
+
+<h1>Resultado del intento</h1>
+
+<div class="result-score">
+  <span class="big"><%= attempt.score %> / <%= attempt.max_score %></span>
+  <span class="pct"><%= pct %>%</span>
+  <span class="verdict <%= attempt.passed ? 'ok' : 'bad' %>"><%= attempt.passed ? 'Aprobado' : 'Suspendido' %></span>
+  <span class="meta-note">Nota mínima <%= quiz.pass_score %>%</span>
+</div>
+
+<div class="quiz">
+  <div class="quiz-head">
+    <span class="t">Desglose por pregunta</span>
+    <span class="pill"><%= items.length %> preguntas</span>
+    <span class="right">Retroalimentación al finalizar el intento</span>
+  </div>
+
+  <% items.forEach((it) => { %>
+  <div class="qres">
+    <div class="qn">
+      Pregunta <%= it.n %> · <%= it.typeName %> · <%= it.awarded %> / <%= it.points %> puntos
+      <span class="verdict <%= it.correct ? 'ok' : 'bad' %>"><%= it.correct ? 'Correcta' : 'Incorrecta' %></span>
+    </div>
+    <p class="qt"><%= it.prompt %></p>
+    <p class="ans"><b>Tu respuesta:</b> <%= it.your || 'Sin responder' %></p>
+    <% if (!it.correct) { %>
+    <p class="ans"><b>Respuesta correcta:</b> <%= it.right || '—' %></p>
+    <% } %>
+
+    <% if (!it.correct && (it.texts.length || it.resources.length)) { %>
+      <% if (it.texts.length) { %>
+      <div class="fb">
+        <b>Para repasar</b>
+        <% it.texts.forEach((t) => { %><p><%= t %></p><% }) %>
+      </div>
+      <% } %>
+      <% if (it.resources.length) { %>
+      <button class="btn btn-accent" type="button" data-open-modal="fb-q<%= it.n %>">Ver material</button>
+      <% } %>
+    <% } %>
+  </div>
+  <% }) %>
+</div>
+
+<div class="result-actions">
+  <% if (canRetry) { %>
+  <a class="btn btn-accent" href="<%= quizUrl %>">Reintentar</a>
+  <% } %>
+  <a class="btn" href="/c/<%= course.slug %>/results">Ver historial</a>
+  <a class="btn btn-dark" href="<%= back || `/c/${course.slug}` %>">Volver</a>
+</div>
+
+<% items.forEach((it) => { if (!it.correct && it.resources.length) { %>
+<div class="modal" id="fb-q<%= it.n %>" role="dialog" aria-modal="true" aria-label="Material de repaso">
+  <div class="modal-head">
+    <span>Material · Pregunta <%= it.n %></span>
+    <button class="modal-close" type="button">Cerrar</button>
+  </div>
+  <div class="modal-body">
+    <% it.resources.forEach((r) => {
+      if (r.kind === 'video') {
+        const yt = /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{6,})/.exec(r.content);
+        const vm = /vimeo\.com\/(\d+)/.exec(r.content);
+    %>
+      <% if (yt) { %>
+      <iframe src="https://www.youtube.com/embed/<%= yt[1] %>" title="Video de repaso" allowfullscreen></iframe>
+      <% } else if (vm) { %>
+      <iframe src="https://player.vimeo.com/video/<%= vm[1] %>" title="Video de repaso" allowfullscreen></iframe>
+      <% } else { %>
+      <video controls src="<%= r.content %>"></video>
+      <% } %>
+    <% } else if (r.kind === 'image') { %>
+    <img src="<%= r.content %>" alt="Material de repaso">
+    <% } else { %>
+    <a class="btn btn-accent" href="<%= r.content %>" target="_blank" rel="noopener">Abrir recurso</a>
+    <% } %>
+    <% }); %>
+  </div>
+</div>
+<% } }) %>
+<div class="modal-backdrop"></div>

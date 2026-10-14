@@ -1,0 +1,35 @@
+<div class="eyebrow">
+  <span>Resultados · <%= course.title %></span>
+  <span class="meta"><%= rows.length %> intentos</span>
+</div>
+
+<h1>Historial de notas</h1>
+
+<% if (!rows.length) { %>
+<div class="defbox">
+  <b>Sin intentos todavía</b>
+  Responde un quiz del curso para ver tu nota aquí.
+</div>
+<div class="result-actions">
+  <a class="btn btn-dark" href="/c/<%= course.slug %>">Ir al curso</a>
+</div>
+<% } else { %>
+<table class="dense">
+  <thead>
+    <tr><th>Fecha</th><th>Quiz</th><th>Nota</th><th>Estado</th></tr>
+  </thead>
+  <tbody>
+    <% rows.forEach((r) => { %>
+    <tr>
+      <td><%= r.fecha %></td>
+      <td><a href="<%= r.href %>"><%= r.title %></a></td>
+      <td><%= r.nota %></td>
+      <td><%= r.estado %></td>
+    </tr>
+    <% }) %>
+  </tbody>
+</table>
+<div class="result-actions">
+  <a class="btn" href="/c/<%= course.slug %>">Volver al curso</a>
+</div>
+<% } %>

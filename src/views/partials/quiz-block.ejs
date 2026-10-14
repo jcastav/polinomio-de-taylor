@@ -1,0 +1,103 @@
+<section class="quiz">
+  <form method="post" action="<%= quizBlock.action %>">
+    <div class="quiz-head">
+      <span class="t"><%= quizBlock.quiz.title %></span>
+      <span class="pill"><%= quizBlock.renderedQs.length %> preguntas</span>
+      <span class="pill"><%= quizBlock.quiz.time_limit_min ? quizBlock.quiz.time_limit_min + ' min' : 'Sin límite de tiempo' %></span>
+      <span class="right">Intento <%= quizBlock.attemptNo %> de <%= quizBlock.quiz.max_attempts %></span>
+    </div>
+
+    <% if (quizBlock.backUrl) { %>
+    <input type="hidden" name="back" value="<%= quizBlock.backUrl %>">
+    <% } %>
+
+    <% quizBlock.renderedQs.forEach((q) => { %>
+
+    <% if (q.type === 'single' || q.type === 'multiple' || q.type === 'truefalse') { %>
+    <div class="q">
+      <div class="qn">Pregunta <%= q.n %> de <%= quizBlock.renderedQs.length %> · <%= q.typeName %></div>
+      <p class="qt"><%= q.prompt %></p>
+      <div class="opts">
+        <% q.opts.forEach((o) => {
+          let checked = false;
+          if (q.type === 'single') {
+            checked = !!(q.savedResp && q.savedResp.choice === o.idx);
+          } else if (q.type === 'multiple') {
+            checked = !!(q.savedResp && Array.isArray(q.savedResp.choices) && q.savedResp.choices.includes(o.idx));
+          } else {
+            checked = !!(q.savedResp && typeof q.savedResp.value === 'boolean' && q.savedResp.value === (o.idx === 'true'));
+          }
+        %>
+        <label class="<%= checked ? 'sel' : '' %>">
+          <input type="<%= q.type === 'multiple' ? 'checkbox' : 'radio' %>"
+                 name="q_<%= q.id %>" value="<%= o.idx %>"<%= checked ? ' checked' : '' %>>
+          <span><%= o.text %></span>
+        </label>
+        <% }) %>
+      </div>
+    </div>
+
+    <% } else if (q.type === 'short') { %>
+    <div class="q">
+      <div class="qn">Pregunta <%= q.n %> de <%= quizBlock.renderedQs.length %> · <%= q.typeName %></div>
+      <p class="qt"><%= q.prompt %></p>
+      <div class="opts" style="border:0; background:none; padding:0;">
+        <input type="text" name="q_<%= q.id %>"
+          value="<%= q.savedResp && q.savedResp.text ? q.savedResp.text : '' %>"
+          placeholder="Tu respuesta…"
+          style="width:100%; max-width:320px; padding:7px 9px; border:1px solid var(--line); background:#fff; font:400 13.5px Georgia, serif;">
+      </div>
+    </div>
+
+    <% } else if (q.type === 'match') { %>
+    <div class="q">
+      <div class="qn">Pregunta <%= q.n %> de <%= quizBlock.renderedQs.length %> · <%= q.typeName %></div>
+      <p class="qt"><%= q.prompt %></p>
+      <div class="opts match-opts">
+        <% (q.payload.left || []).forEach((leftText, i) => {
+          const sel = q.savedResp && Array.isArray(q.savedResp.map) ? q.savedResp.map[i] : null;
+        %>
+        <div class="match-row">
+          <span class="match-l"><%= leftText %></span>
+          <span class="match-arrow">→</span>
+          <select name="q_<%= q.id %>_m<%= i %>">
+            <option value="">Elige…</option>
+            <% (q.payload.right || []).forEach((rText, r) => { %>
+            <option value="<%= r %>"<%= Number(sel) === r ? ' selected' : '' %>><%= rText %></option>
+            <% }) %>
+          </select>
+        </div>
+        <% }) %>
+      </div>
+    </div>
+
+    <% } else if (q.type === 'order') { %>
+    <div class="q">
+      <div class="qn">Pregunta <%= q.n %> de <%= quizBlock.renderedQs.length %> · <%= q.typeName %></div>
+      <p class="qt"><%= q.prompt %></p>
+      <ul class="order-list">
+        <% q.displayOrder.forEach((it) => { %>
+        <li data-idx="<%= it.idx %>">
+          <span class="ord-txt"><%= it.text %></span>
+          <span class="ord-btns">
+            <button type="button" class="ord-up" aria-label="Subir">▲</button>
+            <button type="button" class="ord-down" aria-label="Bajar">▼</button>
+          </span>
+        </li>
+        <% }) %>
+      </ul>
+      <input type="hidden" name="q_<%= q.id %>_order"
+             value="<%= q.displayOrder.map((it) => it.idx).join(',') %>">
+    </div>
+
+    <% } %>
+
+    <% }) %>
+
+    <div class="quiz-foot">
+      <span class="hint">Guarda un borrador si quieres salir y continuar después.</span>
+      <button class="btn" type="submit" formaction="<%= quizBlock.saveUrl %>">Guardar borrador</button>
+      <button class="btn btn-dark" type="submit">Enviar respuestas</button>
+    </div>
+  </form>
+</section>

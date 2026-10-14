@@ -9,6 +9,24 @@
   <%- lesson.html %>
 </div>
 
+<% if (quizBlock) { %>
+<% if (quizBlock.exhausted) { %>
+<section class="quiz">
+  <div class="quiz-head">
+    <span class="t"><%= quizBlock.quiz.title %></span>
+    <span class="pill">Intentos agotados</span>
+    <span class="right"><%= quizBlock.quiz.max_attempts %> intentos usados</span>
+  </div>
+  <div class="quiz-foot">
+    <span class="hint">Revisa tus notas en el historial de resultados.</span>
+    <a class="btn" href="/c/<%= course.slug %>/results">Ver historial</a>
+  </div>
+</section>
+<% } else { %>
+<%- include('../partials/quiz-block', { quizBlock }) %>
+<% } %>
+<% } %>
+
 <div class="lesson-foot">
   <% if (!completed) { %>
   <form method="post" action="/c/<%= course.slug %>/l/<%= lesson.id %>/complete">

@@ -1,0 +1,19 @@
+<div class="eyebrow">
+  <span><%= quiz.kind === 'exam' ? 'Examen final' : 'Quiz' %> · <%= course.title %></span>
+  <span class="meta">Nota mínima <%= quiz.pass_score %>%</span>
+</div>
+
+<h1><%= quiz.title %></h1>
+
+<% if (exhausted) { %>
+<div class="defbox">
+  <b>Intentos agotados</b>
+  Has usado tus <%= quiz.max_attempts %> intentos en este quiz. Revisa tus notas en el historial.
+</div>
+<div class="result-actions">
+  <a class="btn btn-dark" href="/c/<%= course.slug %>/results">Ver historial</a>
+  <a class="btn" href="/c/<%= course.slug %>">Volver al curso</a>
+</div>
+<% } else { %>
+<%- include('../partials/quiz-block') %>
+<% } %>

@@ -3,6 +3,10 @@
   <h3>Tu progreso</h3>
   <div class="body">
     <div class="stat"><span>Lecciones</span><b><%= stats.done %> / <%= stats.total %></b></div>
+    <% if (stats.quizStats && stats.quizStats.total) { %>
+    <div class="stat"><span>Quizzes</span><b><%= stats.quizStats.done %> / <%= stats.quizStats.total %></b></div>
+    <div class="stat"><span>Nota media</span><b><%= stats.quizStats.avg == null ? '—' : stats.quizStats.avg + '%' %></b></div>
+    <% } %>
   </div>
 </div>
 
@@ -15,6 +19,11 @@
     <li><span class="lbl">Estado</span> Todas las lecciones completadas</li>
     <% } else { %>
     <li><span class="lbl">Estado</span> Sin lecciones todavía</li>
+    <% } %>
+    <% const pendingQuiz = (typeof tree !== 'undefined' && tree)
+      ? tree.find((m) => m.quiz && !m.quiz.passed) : null; %>
+    <% if (pendingQuiz) { %>
+    <li><span class="lbl">Pendiente</span> <a href="/c/<%= course.slug %>/quiz/<%= pendingQuiz.quiz.id %>"><%= pendingQuiz.quiz.title %></a></li>
     <% } %>
   </ul>
 </div>

@@ -20,6 +20,16 @@
       </a>
     </li>
     <% }) %>
+    <% if (mod.quiz) { %>
+    <li>
+      <a href="/c/<%= course.slug %>/quiz/<%= mod.quiz.id %>"
+         class="<%= mod.quiz.passed ? 'done' : '' %>">
+        <% if (mod.quiz.passed) { %><span class="st">✓</span><% } else { %><span class="st">○</span><% } %>
+        <%= mod.quiz.title %>
+        <span class="tag">Quiz</span>
+      </a>
+    </li>
+    <% } %>
   </ul>
 </div>
 <% }) %>
