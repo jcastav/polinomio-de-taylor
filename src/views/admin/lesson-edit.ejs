@@ -1,5 +1,9 @@
 <%- include('../partials/admin-nav', { nav: 'courses' }) %>
 
+<div class="editor-top">
+  <a class="btn btn-ghost" href="/admin/courses/<%= course.id %>">← Volver al curso</a>
+</div>
+
 <div class="eyebrow">
   <span>Editar lección · <%= module.title %></span>
   <span class="meta"><%= course.title %></span>

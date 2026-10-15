@@ -374,7 +374,8 @@ router.post('/courses/:id', requireAdmin, wrap(async (req, res) => {
       .update({ ...check.data, published: !!req.body.published })
       .eq('id', course.id)
   );
-  res.redirect(`/admin/courses/${course.id}`);
+  // B3 (excepción): guardar metadata de curso → lista de cursos.
+  res.redirect('/admin/courses');
 }));
 
 router.post('/courses/:id/delete', requireAdmin, wrap(async (req, res) => {
@@ -415,19 +416,18 @@ router.post('/modules/:id/lessons', requireAdmin, wrap(async (req, res) => {
   const mod = await findModule(req.params.id);
   if (!mod) return res.status(404).send('Módulo no encontrado');
   const check = validate(moduleSchema, { title: req.body.title || '' });
-  let lessonId = null;
   if (check.ok) {
-    const created = unwrap(
+    unwrap(
       await sb().from('lessons').insert({
         module_id: mod.id,
         title: check.data.title,
         content: '# ' + check.data.title + '\n\n_Contenido pendiente._\n',
         position: await nextPosition('lessons', 'module_id', mod.id),
-      }).select('id').single()
+      })
     );
-    lessonId = created.id;
   }
-  res.redirect(lessonId ? `/admin/lessons/${lessonId}` : `/admin/courses/${mod.course_id}`);
+  // B3: tras crear se vuelve al árbol del curso (donde está la lección).
+  res.redirect(`/admin/courses/${mod.course_id}`);
 }));
 
 router.post('/modules/:id', requireAdmin, wrap(async (req, res) => {
@@ -503,7 +503,8 @@ router.post('/lessons/:id', requireAdmin, wrap(async (req, res) => {
   }
 
   unwrap(await sb().from('lessons').update(check.data).eq('id', lesson.id));
-  res.redirect(`/admin/lessons/${lesson.id}`);
+  // B3: tras guardar se vuelve al árbol del curso.
+  res.redirect(`/admin/courses/${course.id}`);
 }));
 
 // Preview markdown del editor (JSON; añadido a §6.3).
@@ -531,13 +532,11 @@ router.post('/courses/:id/quizzes', requireAdmin, wrap(async (req, res) => {
   const moduleId = kind === 'quiz' ? Number(req.body.module_id || 0) || null : null;
   if (kind === 'quiz' && !moduleId) return res.redirect(`/admin/courses/${course.id}`);
 
+  // Ojo: .eq('module_id', null) no funciona en PostgREST → usar .is().
+  const base = sb().from('quizzes').select('id')
+    .eq('course_id', course.id).eq('kind', kind);
   const existing = unwrap(
-    await sb().from('quizzes')
-      .select('id')
-      .eq('course_id', course.id)
-      .eq('kind', kind)
-      .eq('module_id', moduleId)
-      .maybeSingle()
+    await (moduleId ? base.eq('module_id', moduleId) : base.is('module_id', null)).maybeSingle()
   );
   if (existing) return res.redirect(`/admin/quizzes/${existing.id}`);
 
@@ -616,7 +615,17 @@ router.post('/quizzes/:id', requireAdmin, wrap(async (req, res) => {
     pass_score: check.data.pass_score,
     shuffle: !!req.body.shuffle,
   }).eq('id', quiz.id));
-  res.redirect(`/admin/quizzes/${quiz.id}`);
+  // B3: tras guardar se vuelve al árbol del curso.
+  res.redirect(`/admin/courses/${quiz.course_id}`);
+}));
+
+// Q2/UX-006: eliminar un quiz individual (antes solo se podía borrando
+// el módulo o el curso entero).
+router.post('/quizzes/:id/delete', requireAdmin, wrap(async (req, res) => {
+  const quiz = await findQuiz(req.params.id);
+  if (!quiz) return res.status(404).send('Quiz no encontrado');
+  unwrap(await sb().from('quizzes').delete().eq('id', quiz.id));
+  res.redirect(`/admin/courses/${quiz.course_id}`);
 }));
 
 router.post('/quizzes/:id/questions', requireAdmin, wrap(async (req, res) => {

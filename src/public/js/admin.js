@@ -123,3 +123,12 @@ document.querySelectorAll('.fb-add').forEach((form) => {
     });
   }
 });
+
+// Q1: botón "Editar" del módulo → enfoca el input inline del título.
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest && e.target.closest('[data-focus-inline]');
+  if (!btn) return;
+  const scope = btn.closest('.modline') || btn.closest('.panel-box');
+  const inp = scope && scope.querySelector('input[name="title"]');
+  if (inp) { inp.focus(); inp.select(); }
+});
