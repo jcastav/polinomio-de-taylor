@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const session = require('express-session');
+const connectPgSimple = require('connect-pg-simple');
 const { sb, unwrap } = require('../db/client');
 
 const ROUNDS = 10;
@@ -12,6 +13,22 @@ function verifyPassword(plain, hash) {
   return bcrypt.compare(plain, hash);
 }
 
+function sessionStore() {
+  // Sesiones en Postgres (Supabase) vía connect-pg-simple (§5.1/§15.1):
+  // sobreviven cold starts en Render. Sin SUPABASE_DB_URL (dev local
+  // sin configurar) se cae al MemoryStore de express-session.
+  if (!process.env.SUPABASE_DB_URL) return undefined;
+
+  const PgStore = connectPgSimple(session);
+  return new PgStore({
+    conString: process.env.SUPABASE_DB_URL,
+    ssl: process.env.NODE_ENV === 'production'
+      ? { rejectUnauthorized: false }
+      : undefined,
+    createTableIfMissing: true,
+  });
+}
+
 function sessionMiddleware() {
   const secret = process.env.SESSION_SECRET ||
     (process.env.NODE_ENV === 'production'
@@ -21,6 +38,7 @@ function sessionMiddleware() {
   return session({
     name: 'sid',
     secret,
+    store: sessionStore(),
     resave: false,
     saveUninitialized: false,
     cookie: {

@@ -14,12 +14,14 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
     "bcrypt": "^5.1.1",
+    "connect-pg-simple": "^9.0.1",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
     "express": "^4.19.2",
     "express-session": "^1.18.0",
     "marked": "^12.0.2",
     "multer": "^2.0.1",
+    "pg": "^8.12.0",
     "sanitize-html": "^2.13.0",
     "zod": "^3.23.8"
   }
