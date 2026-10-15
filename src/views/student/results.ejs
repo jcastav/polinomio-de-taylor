@@ -39,7 +39,7 @@
       </div>
       <% } %>
       <% if (it.resources.length) { %>
-      <button class="btn btn-accent" type="button" data-open-modal="fb-q<%= it.n %>">Ver material</button>
+      <button class="btn btn-positive" type="button" data-open-modal="fb-q<%= it.n %>">Ver material</button>
       <% } %>
     <% } %>
   </div>
@@ -48,7 +48,7 @@
 
 <div class="result-actions">
   <% if (canRetry) { %>
-  <a class="btn btn-accent" href="<%= quizUrl %>">Reintentar</a>
+  <a class="btn btn-positive" href="<%= quizUrl %>">Reintentar</a>
   <% } %>
   <a class="btn btn-dark" href="/c/<%= course.slug %>/ranking?quiz=<%= quiz.id %>">Ver ranking</a>
   <a class="btn" href="/c/<%= course.slug %>/results">Ver historial</a>
@@ -77,7 +77,7 @@
     <% } else if (r.kind === 'image') { %>
     <img src="<%= r.content %>" alt="Material de repaso">
     <% } else { %>
-    <a class="btn btn-accent" href="<%= r.content %>" target="_blank" rel="noopener">Abrir recurso</a>
+    <a class="btn btn-positive" href="<%= r.content %>" target="_blank" rel="noopener">Abrir recurso</a>
     <% } %>
     <% }); %>
   </div>

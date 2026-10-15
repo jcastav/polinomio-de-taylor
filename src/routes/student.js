@@ -87,39 +87,39 @@ async function buildTree(course, userId) {
   );
   if (!mods.length) return [];
 
-  const lessons = unwrap(
-    await sb().from('lessons')
+  // UX-016: lecciones y quizzes son independientes entre sí → en paralelo.
+  const [lessons, quizzes] = await Promise.all([
+    sb().from('lessons')
       .select('id, module_id, title, position')
       .in('module_id', mods.map((m) => m.id))
-  );
-
-  const quizzes = unwrap(
-    await sb().from('quizzes')
+      .then((r) => unwrap(r)),
+    sb().from('quizzes')
       .select('id, module_id, title, kind')
       .eq('course_id', course.id)
       .in('module_id', mods.map((m) => m.id))
-  );
+      .then((r) => unwrap(r)),
+  ]);
 
-  const done = new Set();
-  if (userId && lessons.length) {
-    const prog = unwrap(
-      await sb().from('lesson_progress')
-        .select('lesson_id')
-        .eq('user_id', userId)
-        .in('lesson_id', lessons.map((l) => l.id))
-    );
-    prog.forEach((p) => done.add(Number(p.lesson_id)));
-  }
-
-  const quizIds = quizzes.map((q) => q.id);
-  const att = (userId && quizIds.length)
-    ? unwrap(
-        await sb().from('attempts')
+  // Progreso y intentos dependen de las queries anteriores → también en paralelo.
+  const [prog, att] = await Promise.all([
+    (userId && lessons.length)
+      ? sb().from('lesson_progress')
+          .select('lesson_id')
+          .eq('user_id', userId)
+          .in('lesson_id', lessons.map((l) => l.id))
+          .then((r) => unwrap(r))
+      : Promise.resolve([]),
+    (userId && quizzes.length)
+      ? sb().from('attempts')
           .select('quiz_id, status, passed')
           .eq('user_id', userId)
-          .in('quiz_id', quizIds)
-      )
-    : [];
+          .in('quiz_id', quizzes.map((q) => q.id))
+          .then((r) => unwrap(r))
+      : Promise.resolve([]),
+  ]);
+
+  const done = new Set();
+  prog.forEach((p) => done.add(Number(p.lesson_id)));
 
   return mods.map((m) => {
     const qz = quizzes.find((q) => q.module_id === m.id) || null;
@@ -183,10 +183,14 @@ async function loadQuizStats(course, userId) {
 }
 
 // Contexto común: árbol + progreso + stats de quizzes (vistas con layout).
+// UX-016: árbol y stats de quizzes no dependen entre sí → en paralelo.
 async function courseContext(req, course) {
-  const tree = await buildTree(course, req.user.id);
+  const [tree, quizStats] = await Promise.all([
+    buildTree(course, req.user.id),
+    loadQuizStats(course, req.user.id),
+  ]);
   const stats = computeStats(tree);
-  stats.quizStats = await loadQuizStats(course, req.user.id);
+  stats.quizStats = quizStats;
   const nextLesson = stats.flat.find((l) => !l.done) || null;
   return { tree, stats, nextLesson };
 }
@@ -277,14 +281,14 @@ async function handleSend(req, res, course, quiz, backUrl) {
 // GET / → redirige al curso publicado activo (§6.2).
 router.get('/', requireAuth, wrap(async (req, res) => {
   const course = await activeCourse();
-  if (!course) return res.status(404).send('No hay cursos publicados todavía.');
+  if (!course) return res.renderError(404, 'No hay cursos publicados todavía.');
   res.redirect(`/c/${course.slug}`);
 }));
 
 // Portada del curso (§9.1).
 router.get('/c/:slug', requireStudent, wrap(async (req, res) => {
   const course = await findCourse(req.params.slug);
-  if (!(await courseOk(req, course))) return res.status(404).send('Curso no encontrado');
+  if (!(await courseOk(req, course))) return res.renderError(404, 'Curso no encontrado');
 
   const { tree, stats, nextLesson } = await courseContext(req, course);
 
@@ -303,7 +307,7 @@ router.get('/c/:slug', requireStudent, wrap(async (req, res) => {
 // ítem hermano en el árbol y se entra desde su propia ruta (UX decisiones).
 router.get('/c/:slug/l/:lessonId', requireStudent, wrap(async (req, res) => {
   const course = await findCourse(req.params.slug);
-  if (!(await courseOk(req, course))) return res.status(404).send('Curso no encontrado');
+  if (!(await courseOk(req, course))) return res.renderError(404, 'Curso no encontrado');
 
   const lesson = unwrap(
     await sb().from('lessons')
@@ -311,7 +315,7 @@ router.get('/c/:slug/l/:lessonId', requireStudent, wrap(async (req, res) => {
       .eq('id', req.params.lessonId)
       .maybeSingle()
   );
-  if (!lesson) return res.status(404).send('Lección no encontrada');
+  if (!lesson) return res.renderError(404, 'Lección no encontrada');
 
   const mod = unwrap(
     await sb().from('modules')
@@ -320,7 +324,7 @@ router.get('/c/:slug/l/:lessonId', requireStudent, wrap(async (req, res) => {
       .maybeSingle()
   );
   if (!mod || mod.course_id !== course.id) {
-    return res.status(404).send('Lección no encontrada');
+    return res.renderError(404, 'Lección no encontrada');
   }
 
   const { tree, stats, nextLesson } = await courseContext(req, course);
@@ -361,18 +365,18 @@ router.get('/c/:slug/l/:lessonId', requireStudent, wrap(async (req, res) => {
 // del plan; añadida para que el botón "Marcar como completada" funcione.
 router.post('/c/:slug/l/:lessonId/complete', requireStudent, wrap(async (req, res) => {
   const course = await findCourse(req.params.slug);
-  if (!(await courseOk(req, course))) return res.status(404).send('Curso no encontrado');
+  if (!(await courseOk(req, course))) return res.renderError(404, 'Curso no encontrado');
 
   const lesson = unwrap(
     await sb().from('lessons').select('id, module_id').eq('id', req.params.lessonId).maybeSingle()
   );
-  if (!lesson) return res.status(404).send('Lección no encontrada');
+  if (!lesson) return res.renderError(404, 'Lección no encontrada');
 
   const mod = unwrap(
     await sb().from('modules').select('id, course_id').eq('id', lesson.module_id).maybeSingle()
   );
   if (!mod || mod.course_id !== course.id) {
-    return res.status(404).send('Lección no encontrada');
+    return res.renderError(404, 'Lección no encontrada');
   }
 
   unwrap(
@@ -388,9 +392,9 @@ router.post('/c/:slug/l/:lessonId/complete', requireStudent, wrap(async (req, re
 // Quiz completo (§6.2). Mismo bloque que el embebido, en página propia.
 router.get('/c/:slug/quiz/:quizId', requireStudent, wrap(async (req, res) => {
   const course = await findCourse(req.params.slug);
-  if (!(await courseOk(req, course))) return res.status(404).send('Curso no encontrado');
+  if (!(await courseOk(req, course))) return res.renderError(404, 'Curso no encontrado');
   const quiz = await findQuiz(course, req.params.quizId);
-  if (!quiz) return res.status(404).send('Quiz no encontrado');
+  if (!quiz) return res.renderError(404, 'Quiz no encontrado');
 
   const { tree, stats, nextLesson } = await courseContext(req, course);
   const qv = await quizView(req, course, quiz);
@@ -415,9 +419,9 @@ router.get('/c/:slug/quiz/:quizId', requireStudent, wrap(async (req, res) => {
 // Guardado parcial del borrador (§7.3).
 router.post('/c/:slug/quiz/:quizId/save', requireStudent, wrap(async (req, res) => {
   const course = await findCourse(req.params.slug);
-  if (!(await courseOk(req, course))) return res.status(404).send('Curso no encontrado');
+  if (!(await courseOk(req, course))) return res.renderError(404, 'Curso no encontrado');
   const quiz = await findQuiz(course, req.params.quizId);
-  if (!quiz) return res.status(404).send('Quiz no encontrado');
+  if (!quiz) return res.renderError(404, 'Quiz no encontrado');
 
   const attempt = await quizLib.ensureAttempt(req.user, quiz);
   const quizUrl = `/c/${course.slug}/quiz/${quiz.id}`;
@@ -431,18 +435,18 @@ router.post('/c/:slug/quiz/:quizId/save', requireStudent, wrap(async (req, res) 
 // Envío y calificación del quiz completo (§6.2, §7.1).
 router.post('/c/:slug/quiz/:quizId/submit', requireStudent, wrap(async (req, res) => {
   const course = await findCourse(req.params.slug);
-  if (!(await courseOk(req, course))) return res.status(404).send('Curso no encontrado');
+  if (!(await courseOk(req, course))) return res.renderError(404, 'Curso no encontrado');
   const quiz = await findQuiz(course, req.params.quizId);
-  if (!quiz) return res.status(404).send('Quiz no encontrado');
+  if (!quiz) return res.renderError(404, 'Quiz no encontrado');
   await handleSend(req, res, course, quiz, safeBack(req.body.back));
 }));
 
 // Página de resultados de un intento con retroalimentación (§7.5, §9.6).
 router.get('/c/:slug/quiz/:quizId/result/:attemptId', requireStudent, wrap(async (req, res) => {
   const course = await findCourse(req.params.slug);
-  if (!(await courseOk(req, course))) return res.status(404).send('Curso no encontrado');
+  if (!(await courseOk(req, course))) return res.renderError(404, 'Curso no encontrado');
   const quiz = await findQuiz(course, req.params.quizId);
-  if (!quiz) return res.status(404).send('Quiz no encontrado');
+  if (!quiz) return res.renderError(404, 'Quiz no encontrado');
 
   const attempt = unwrap(
     await sb().from('attempts')
@@ -452,7 +456,7 @@ router.get('/c/:slug/quiz/:quizId/result/:attemptId', requireStudent, wrap(async
       .eq('user_id', req.user.id)
       .maybeSingle()
   );
-  if (!attempt) return res.status(404).send('Intento no encontrado');
+  if (!attempt) return res.renderError(404, 'Intento no encontrado');
   if (attempt.status !== 'graded') {
     return res.redirect(`/c/${course.slug}/quiz/${quiz.id}`);
   }
@@ -533,7 +537,7 @@ router.get('/c/:slug/quiz/:quizId/result/:attemptId', requireStudent, wrap(async
 // Historial de notas del estudiante en el curso (§9.4).
 router.get('/c/:slug/results', requireStudent, wrap(async (req, res) => {
   const course = await findCourse(req.params.slug);
-  if (!(await courseOk(req, course))) return res.status(404).send('Curso no encontrado');
+  if (!(await courseOk(req, course))) return res.renderError(404, 'Curso no encontrado');
 
   const { tree, stats, nextLesson } = await courseContext(req, course);
 
@@ -583,7 +587,7 @@ router.get('/c/:slug/results', requireStudent, wrap(async (req, res) => {
 // consulta de §4.2 a una función Postgres (rpc) o vista materializada.
 router.get('/c/:slug/ranking', requireStudent, wrap(async (req, res) => {
   const course = await findCourse(req.params.slug);
-  if (!(await courseOk(req, course))) return res.status(404).send('Curso no encontrado');
+  if (!(await courseOk(req, course))) return res.renderError(404, 'Curso no encontrado');
 
   const { tree, stats, nextLesson } = await courseContext(req, course);
 

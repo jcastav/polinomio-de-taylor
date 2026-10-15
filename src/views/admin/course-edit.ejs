@@ -47,7 +47,7 @@
   </form>
   <form method="post" action="/admin/courses/<%= course.id %>/delete"
         onsubmit="return confirm('¿Eliminar el curso y todo su contenido?')">
-    <button class="btn btn-accent" type="submit">Eliminar curso</button>
+    <button class="btn btn-danger" type="submit">Eliminar curso</button>
   </form>
 </div>
 
@@ -71,7 +71,7 @@
       </form>
       <form method="post" action="/admin/modules/<%= m.id %>/delete"
             onsubmit="return confirm('¿Eliminar el módulo y sus lecciones?')">
-        <button class="btn btn-sm btn-accent" type="submit">Eliminar</button>
+        <button class="btn btn-sm btn-danger" type="submit">Eliminar</button>
       </form>
     </span>
   </div>
@@ -84,7 +84,7 @@
         <a class="btn btn-sm" href="/admin/lessons/<%= l.id %>">Editar</a>
         <form method="post" action="/admin/lessons/<%= l.id %>/delete"
               onsubmit="return confirm('¿Eliminar la lección?')">
-          <button class="btn btn-sm btn-accent" type="submit">Eliminar</button>
+          <button class="btn btn-sm btn-danger" type="submit">Eliminar</button>
         </form>
       </span>
     </li>
@@ -104,7 +104,7 @@
       <a class="btn btn-sm" href="/admin/quizzes/<%= m.quiz.id %>">Editar</a>
       <form method="post" action="/admin/quizzes/<%= m.quiz.id %>/delete"
             onsubmit="return confirm('¿Eliminar el quiz y sus preguntas?')">
-        <button class="btn btn-sm btn-accent" type="submit">Eliminar</button>
+        <button class="btn btn-sm btn-danger" type="submit">Eliminar</button>
       </form>
     </span>
     <% } else { %>

@@ -1,0 +1,12 @@
+<div class="error-page">
+  <p class="eyebrow">Error <%= status %></p>
+  <h1><%= message %></h1>
+  <p class="muted">
+    <% if (status === 404) { %>
+      La página que buscas no existe o ya no está disponible.
+    <% } else { %>
+      Algo salió mal. El error quedó registrado en el servidor; vuelve a intentarlo.
+    <% } %>
+  </p>
+  <a class="btn btn-dark" href="<%= user && user.role === 'admin' ? '/admin' : '/' %>">Volver al inicio</a>
+</div>

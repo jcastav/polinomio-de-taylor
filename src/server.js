@@ -19,19 +19,42 @@ app.use(express.urlencoded({ extended: false }));
 app.use(sessionMiddleware());
 app.use(loadUser);
 
+// UX-001: 404/500 con layout (vista error.ejs) en vez de texto plano.
+// Cualquier ruta puede llamar res.renderError(status, message).
+app.use((req, res, next) => {
+  res.renderError = (status, message) => {
+    res.status(status);
+    if (!req.accepts('html')) return res.send(message);
+    try {
+      return res.render('layout', {
+        view: 'error',
+        title: status === 404 ? 'No encontrado' : 'Error',
+        crumbs: status === 404 ? 'No encontrado' : 'Error',
+        bare: true,
+        status,
+        message,
+      });
+    } catch (e) {
+      console.error(e);
+      return res.send(message);
+    }
+  };
+  next();
+});
+
 app.use('/', studentRoutes);
 app.use('/', authRoutes);
 app.use('/admin', adminRoutes);
 
 app.use((req, res) => {
-  res.status(404).send('No encontrado');
+  res.renderError(404, 'No encontrado');
 });
 
-// §12: nunca exponer stack al cliente. Log + 500 genérico.
+// §12: nunca exponer stack al cliente. Log + 500 con layout.
 app.use((err, req, res, next) => {
   console.error(err);
   if (res.headersSent) return next(err);
-  res.status(500).send('Error interno');
+  res.renderError(500, 'Error interno');
 });
 
 app.listen(PORT, () => {

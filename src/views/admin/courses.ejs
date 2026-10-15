@@ -8,7 +8,7 @@
 <h1>Cursos</h1>
 
 <% if (courses.length) { %>
-<table class="dense">
+<div class="table-scroll"><table class="dense">
   <thead>
     <tr><th>Título</th><th>Slug</th><th>Módulos</th><th>Estado</th><th></th></tr>
   </thead>
@@ -23,7 +23,7 @@
     </tr>
     <% }) %>
   </tbody>
-</table>
+</table></div>
 <% } else { %>
 <div class="defbox"><b>Sin cursos</b>Crea el primer curso del aula.</div>
 <% } %>

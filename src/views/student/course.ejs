@@ -9,7 +9,7 @@
 <h2>Módulos</h2>
 
 <% if (tree.length) { %>
-<table class="dense">
+<div class="table-scroll"><table class="dense">
   <thead>
     <tr><th>Módulo</th><th>Lecciones</th><th>Progreso</th></tr>
   </thead>
@@ -22,7 +22,7 @@
     </tr>
     <% }) %>
   </tbody>
-</table>
+</table></div>
 <% } else { %>
 <div class="defbox">
   <b>Sin contenido</b>

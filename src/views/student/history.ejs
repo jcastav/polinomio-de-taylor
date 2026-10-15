@@ -14,7 +14,7 @@
   <a class="btn btn-dark" href="/c/<%= course.slug %>">Ir al curso</a>
 </div>
 <% } else { %>
-<table class="dense">
+<div class="table-scroll"><table class="dense">
   <thead>
     <tr><th>Fecha</th><th>Quiz</th><th>Nota</th><th>Estado</th></tr>
   </thead>
@@ -28,7 +28,7 @@
     </tr>
     <% }) %>
   </tbody>
-</table>
+</table></div>
 <div class="result-actions">
   <a class="btn" href="/c/<%= course.slug %>">Volver al curso</a>
 </div>

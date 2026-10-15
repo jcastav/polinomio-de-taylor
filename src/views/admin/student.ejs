@@ -15,7 +15,7 @@
 <h2>Intentos</h2>
 
 <% if (attempts.length) { %>
-<table class="dense">
+<div class="table-scroll"><table class="dense">
   <thead>
     <tr><th>Fecha</th><th>Quiz</th><th>Nota</th><th>Estado</th><th></th></tr>
   </thead>
@@ -30,7 +30,7 @@
     </tr>
     <% }) %>
   </tbody>
-</table>
+</table></div>
 <% } else { %>
 <div class="defbox"><b>Sin intentos</b>Este estudiante aún no ha enviado quizzes.</div>
 <% } %>

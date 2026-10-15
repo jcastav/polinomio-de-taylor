@@ -15,7 +15,7 @@
   Fecha: <%= fecha %>
 </div>
 
-<table class="dense">
+<div class="table-scroll"><table class="dense">
   <thead>
     <tr><th>#</th><th>Pregunta</th><th>Tu respuesta</th><th>Correcta</th><th>Puntos</th></tr>
   </thead>
@@ -30,7 +30,7 @@
     </tr>
     <% }) %>
   </tbody>
-</table>
+</table></div>
 
 <div class="result-actions">
   <% if (attempt.users) { %>

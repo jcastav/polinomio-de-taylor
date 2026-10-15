@@ -17,6 +17,16 @@
   background:var(--accent); border-color:var(--accent); color:#fff;
 }
 .btn-accent:hover{ background:#6f2415; }
+/* UX-010: semántica de color — rojo solo para destructivos,
+   verde para acciones positivas (CTAs). */
+.btn-danger{
+  background:var(--accent); border-color:var(--accent); color:#fff;
+}
+.btn-danger:hover{ background:#6f2415; border-color:#6f2415; }
+.btn-positive{
+  background:var(--accent-2); border-color:var(--accent-2); color:#fff;
+}
+.btn-positive:hover{ background:#233a31; border-color:#233a31; }
 .btn-ghost{
   background:transparent; border-color:#4a453c; color:#d9d3c6;
 }
@@ -624,7 +634,7 @@ body.modal-open .modal.is-open{ display:block; }
 }
 .btn-big{ width:100%; justify-content:center; padding:12px 18px; font-size:15px; }
 .quiz-cta .btn[disabled]{ opacity:.55; cursor:not-allowed; }
-.quiz-cta .btn[disabled]:hover{ background:var(--accent); }
+.quiz-cta .btn[disabled]:hover{ background:var(--accent-2); }
 .cta-hint{ margin:0; font-size:12.5px; color:var(--muted); }
 
 .tabs{ display:flex; gap:4px; margin:16px 0 0; border-bottom:1px solid var(--line); }
@@ -646,3 +656,11 @@ table.dense tr.me td{ background:var(--hl); font-weight:600; }
   border-radius:3px; vertical-align:1px;
 }
 .footnote{ margin:8px 0 0; font-size:12px; color:var(--muted); }
+
+/* ---------- UX-001: página de error con layout ---------- */
+.error-page{ padding:44px 6px; max-width:540px; }
+.error-page h1{
+  font:700 30px/1.2 Georgia, serif; color:var(--ink);
+  margin:8px 0 10px;
+}
+.error-page .btn{ margin-top:14px; }

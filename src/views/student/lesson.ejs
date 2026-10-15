@@ -16,11 +16,11 @@
 %>
 <section class="quiz-cta">
   <% if (unlocked) { %>
-  <a class="btn btn-accent btn-big" href="/c/<%= course.slug %>/quiz/<%= moduleInfo.quiz.id %>">
+  <a class="btn btn-positive btn-big" href="/c/<%= course.slug %>/quiz/<%= moduleInfo.quiz.id %>">
     Avanzar al quiz del módulo →
   </a>
   <% } else { %>
-  <button class="btn btn-accent btn-big" type="button" disabled aria-disabled="true">
+  <button class="btn btn-positive btn-big" type="button" disabled aria-disabled="true">
     Avanzar al quiz del módulo →
   </button>
   <p class="cta-hint">Completa las <%= pendingLessons %> lecciones del módulo para desbloquearlo</p>
@@ -31,7 +31,7 @@
 <div class="lesson-foot">
   <% if (!completed) { %>
   <form method="post" action="/c/<%= course.slug %>/l/<%= lesson.id %>/complete">
-    <button class="btn btn-accent" type="submit">Marcar como completada</button>
+    <button class="btn btn-positive" type="submit">Marcar como completada</button>
   </form>
   <% } else { %>
   <span class="lesson-done">✓ Completada</span>

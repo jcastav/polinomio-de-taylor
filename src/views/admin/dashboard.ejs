@@ -15,13 +15,13 @@
 
 <div class="result-actions">
   <a class="btn btn-dark" href="/admin/courses">Gestionar cursos</a>
-  <a class="btn btn-accent" href="/admin/students">Nuevo estudiante</a>
+  <a class="btn btn-positive" href="/admin/students">Nuevo estudiante</a>
 </div>
 
 <h2>Últimos intentos</h2>
 
 <% if (last.length) { %>
-<table class="dense">
+<div class="table-scroll"><table class="dense">
   <thead>
     <tr><th>Fecha</th><th>Estudiante</th><th>Quiz</th><th>Nota</th><th>Estado</th></tr>
   </thead>
@@ -36,7 +36,7 @@
     </tr>
     <% }) %>
   </tbody>
-</table>
+</table></div>
 <% } else { %>
 <div class="defbox"><b>Sin actividad</b>Todavía no hay intentos registrados.</div>
 <% } %>

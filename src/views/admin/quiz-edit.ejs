@@ -65,7 +65,7 @@
     <span>Pregunta <%= i + 1 %> · <%= TYPE_NAMES[q.type] %> · <%= q.points %> pts</span>
     <form method="post" action="/admin/questions/<%= q.id %>/delete"
           onsubmit="return confirm('¿Eliminar la pregunta y sus respuestas?')">
-      <button class="btn btn-sm btn-accent" type="submit">Eliminar</button>
+      <button class="btn btn-sm btn-danger" type="submit">Eliminar</button>
     </form>
   </div>
 
@@ -83,7 +83,7 @@
       <span class="fb-kind"><%= f.kind %></span>
       <span class="fb-content"><%= f.content.length > 90 ? f.content.slice(0, 90) + '…' : f.content %></span>
       <form method="post" action="/admin/feedback/<%= f.id %>/delete">
-        <button class="btn btn-sm btn-accent" type="submit">Quitar</button>
+        <button class="btn btn-sm btn-danger" type="submit">Quitar</button>
       </form>
     </li>
     <% }) %>

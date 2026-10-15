@@ -332,7 +332,7 @@ router.post('/courses', requireAdmin, wrap(async (req, res) => {
 
 router.get('/courses/:id', requireAdmin, wrap(async (req, res) => {
   const course = await findCourse(req.params.id);
-  if (!course) return res.status(404).send('Curso no encontrado');
+  if (!course) return res.renderError(404, 'Curso no encontrado');
 
   const tree = await moduleTree(course.id);
   const quizzes = await courseQuiz(course.id);
@@ -346,7 +346,7 @@ router.get('/courses/:id', requireAdmin, wrap(async (req, res) => {
 
 router.post('/courses/:id', requireAdmin, wrap(async (req, res) => {
   const course = await findCourse(req.params.id);
-  if (!course) return res.status(404).send('Curso no encontrado');
+  if (!course) return res.renderError(404, 'Curso no encontrado');
 
   const check = validate(courseSchema, {
     title: req.body.title || '',
@@ -380,14 +380,14 @@ router.post('/courses/:id', requireAdmin, wrap(async (req, res) => {
 
 router.post('/courses/:id/delete', requireAdmin, wrap(async (req, res) => {
   const course = await findCourse(req.params.id);
-  if (!course) return res.status(404).send('Curso no encontrado');
+  if (!course) return res.renderError(404, 'Curso no encontrado');
   unwrap(await sb().from('courses').delete().eq('id', course.id));
   res.redirect('/admin/courses');
 }));
 
 router.post('/courses/:id/publish', requireAdmin, wrap(async (req, res) => {
   const course = await findCourse(req.params.id);
-  if (!course) return res.status(404).send('Curso no encontrado');
+  if (!course) return res.renderError(404, 'Curso no encontrado');
   unwrap(await sb().from('courses').update({ published: !course.published }).eq('id', course.id));
   res.redirect(`/admin/courses/${course.id}`);
 }));
@@ -399,7 +399,7 @@ router.get('/courses/:id/modules', requireAdmin, wrap(async (req, res) => {
 
 router.post('/courses/:id/modules', requireAdmin, wrap(async (req, res) => {
   const course = await findCourse(req.params.id);
-  if (!course) return res.status(404).send('Curso no encontrado');
+  if (!course) return res.renderError(404, 'Curso no encontrado');
   const check = validate(moduleSchema, { title: req.body.title || '' });
   if (check.ok) {
     unwrap(await sb().from('modules').insert({
@@ -414,7 +414,7 @@ router.post('/courses/:id/modules', requireAdmin, wrap(async (req, res) => {
 // Crear lección en un módulo (añadido a §6.3).
 router.post('/modules/:id/lessons', requireAdmin, wrap(async (req, res) => {
   const mod = await findModule(req.params.id);
-  if (!mod) return res.status(404).send('Módulo no encontrado');
+  if (!mod) return res.renderError(404, 'Módulo no encontrado');
   const check = validate(moduleSchema, { title: req.body.title || '' });
   if (check.ok) {
     unwrap(
@@ -432,7 +432,7 @@ router.post('/modules/:id/lessons', requireAdmin, wrap(async (req, res) => {
 
 router.post('/modules/:id', requireAdmin, wrap(async (req, res) => {
   const mod = await findModule(req.params.id);
-  if (!mod) return res.status(404).send('Módulo no encontrado');
+  if (!mod) return res.renderError(404, 'Módulo no encontrado');
   const check = validate(moduleSchema, { title: req.body.title || '' });
   if (check.ok) {
     unwrap(await sb().from('modules').update({ title: check.data.title }).eq('id', mod.id));
@@ -442,14 +442,14 @@ router.post('/modules/:id', requireAdmin, wrap(async (req, res) => {
 
 router.post('/modules/:id/delete', requireAdmin, wrap(async (req, res) => {
   const mod = await findModule(req.params.id);
-  if (!mod) return res.status(404).send('Módulo no encontrado');
+  if (!mod) return res.renderError(404, 'Módulo no encontrado');
   unwrap(await sb().from('modules').delete().eq('id', mod.id));
   res.redirect(`/admin/courses/${mod.course_id}`);
 }));
 
 router.post('/modules/:id/reorder', requireAdmin, wrap(async (req, res) => {
   const mod = await findModule(req.params.id);
-  if (!mod) return res.status(404).send('Módulo no encontrado');
+  if (!mod) return res.renderError(404, 'Módulo no encontrado');
 
   const sibs = unwrap(
     await sb().from('modules')
@@ -471,7 +471,7 @@ router.post('/modules/:id/reorder', requireAdmin, wrap(async (req, res) => {
 
 router.get('/lessons/:id', requireAdmin, wrap(async (req, res) => {
   const lesson = await findLesson(req.params.id);
-  if (!lesson) return res.status(404).send('Lección no encontrada');
+  if (!lesson) return res.renderError(404, 'Lección no encontrada');
   const mod = await findModule(lesson.module_id);
   const course = await findCourse(mod.course_id);
 
@@ -485,7 +485,7 @@ router.get('/lessons/:id', requireAdmin, wrap(async (req, res) => {
 
 router.post('/lessons/:id', requireAdmin, wrap(async (req, res) => {
   const lesson = await findLesson(req.params.id);
-  if (!lesson) return res.status(404).send('Lección no encontrada');
+  if (!lesson) return res.renderError(404, 'Lección no encontrada');
   const mod = await findModule(lesson.module_id);
   const course = await findCourse(mod.course_id);
 
@@ -515,7 +515,7 @@ router.post('/lessons/:id/preview', requireAdmin, wrap(async (req, res) => {
 
 router.post('/lessons/:id/delete', requireAdmin, wrap(async (req, res) => {
   const lesson = await findLesson(req.params.id);
-  if (!lesson) return res.status(404).send('Lección no encontrada');
+  if (!lesson) return res.renderError(404, 'Lección no encontrada');
   const mod = await findModule(lesson.module_id);
   unwrap(await sb().from('lessons').delete().eq('id', lesson.id));
   res.redirect(`/admin/courses/${mod.course_id}`);
@@ -526,7 +526,7 @@ router.post('/lessons/:id/delete', requireAdmin, wrap(async (req, res) => {
 // Crear quiz de módulo o examen final (añadido a §6.3).
 router.post('/courses/:id/quizzes', requireAdmin, wrap(async (req, res) => {
   const course = await findCourse(req.params.id);
-  if (!course) return res.status(404).send('Curso no encontrado');
+  if (!course) return res.renderError(404, 'Curso no encontrado');
 
   const kind = req.body.kind === 'exam' ? 'exam' : 'quiz';
   const moduleId = kind === 'quiz' ? Number(req.body.module_id || 0) || null : null;
@@ -555,7 +555,7 @@ router.post('/courses/:id/quizzes', requireAdmin, wrap(async (req, res) => {
 
 router.get('/quizzes/:id', requireAdmin, wrap(async (req, res) => {
   const quiz = await findQuiz(req.params.id);
-  if (!quiz) return res.status(404).send('Quiz no encontrado');
+  if (!quiz) return res.renderError(404, 'Quiz no encontrado');
   const course = await findCourse(quiz.course_id);
 
   const questions = unwrap(
@@ -583,7 +583,7 @@ router.get('/quizzes/:id', requireAdmin, wrap(async (req, res) => {
 
 router.post('/quizzes/:id', requireAdmin, wrap(async (req, res) => {
   const quiz = await findQuiz(req.params.id);
-  if (!quiz) return res.status(404).send('Quiz no encontrado');
+  if (!quiz) return res.renderError(404, 'Quiz no encontrado');
   const course = await findCourse(quiz.course_id);
 
   const check = validate(quizSchema, {
@@ -623,14 +623,14 @@ router.post('/quizzes/:id', requireAdmin, wrap(async (req, res) => {
 // el módulo o el curso entero).
 router.post('/quizzes/:id/delete', requireAdmin, wrap(async (req, res) => {
   const quiz = await findQuiz(req.params.id);
-  if (!quiz) return res.status(404).send('Quiz no encontrado');
+  if (!quiz) return res.renderError(404, 'Quiz no encontrado');
   unwrap(await sb().from('quizzes').delete().eq('id', quiz.id));
   res.redirect(`/admin/courses/${quiz.course_id}`);
 }));
 
 router.post('/quizzes/:id/questions', requireAdmin, wrap(async (req, res) => {
   const quiz = await findQuiz(req.params.id);
-  if (!quiz) return res.status(404).send('Quiz no encontrado');
+  if (!quiz) return res.renderError(404, 'Quiz no encontrado');
 
   const check = validate(questionSchema, {
     type: req.body.type || '',
@@ -660,7 +660,7 @@ router.post('/quizzes/:id/questions', requireAdmin, wrap(async (req, res) => {
 
 router.post('/questions/:id', requireAdmin, wrap(async (req, res) => {
   const q = await findQuestion(req.params.id);
-  if (!q) return res.status(404).send('Pregunta no encontrada');
+  if (!q) return res.renderError(404, 'Pregunta no encontrada');
 
   const check = validate(questionSchema, {
     type: q.type,
@@ -687,14 +687,14 @@ router.post('/questions/:id', requireAdmin, wrap(async (req, res) => {
 
 router.post('/questions/:id/delete', requireAdmin, wrap(async (req, res) => {
   const q = await findQuestion(req.params.id);
-  if (!q) return res.status(404).send('Pregunta no encontrada');
+  if (!q) return res.renderError(404, 'Pregunta no encontrada');
   unwrap(await sb().from('questions').delete().eq('id', q.id));
   res.redirect(`/admin/quizzes/${q.quiz_id}`);
 }));
 
 router.post('/questions/:id/feedback', requireAdmin, wrap(async (req, res) => {
   const q = await findQuestion(req.params.id);
-  if (!q) return res.status(404).send('Pregunta no encontrada');
+  if (!q) return res.renderError(404, 'Pregunta no encontrada');
 
   const check = validate(feedbackSchema, {
     kind: req.body.kind || '',
@@ -728,7 +728,7 @@ router.post('/feedback/:id/delete', requireAdmin, wrap(async (req, res) => {
       .eq('id', req.params.id)
       .maybeSingle()
   );
-  if (!row) return res.status(404).send('Recurso no encontrado');
+  if (!row) return res.renderError(404, 'Recurso no encontrado');
   const q = await findQuestion(row.question_id);
   unwrap(await sb().from('question_feedback').delete().eq('id', row.id));
   res.redirect(`/admin/quizzes/${q.quiz_id}`);
@@ -839,7 +839,7 @@ router.get('/students/:id', requireAdmin, wrap(async (req, res) => {
       .eq('id', req.params.id)
       .maybeSingle()
   );
-  if (!student) return res.status(404).send('Estudiante no encontrado');
+  if (!student) return res.renderError(404, 'Estudiante no encontrado');
 
   const prog = unwrap(
     await sb().from('lesson_progress').select('lesson_id').eq('user_id', student.id)
@@ -872,7 +872,7 @@ router.get('/attempts/:id', requireAdmin, wrap(async (req, res) => {
       .eq('id', req.params.id)
       .maybeSingle()
   );
-  if (!attempt) return res.status(404).send('Intento no encontrado');
+  if (!attempt) return res.renderError(404, 'Intento no encontrado');
   const course = await findCourse(attempt.quizzes.course_id);
 
   const questions = await quizLib.getQuestions(attempt.quiz_id);

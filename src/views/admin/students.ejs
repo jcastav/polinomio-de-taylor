@@ -8,7 +8,7 @@
 <h1>Estudiantes</h1>
 
 <% if (students.length) { %>
-<table class="dense">
+<div class="table-scroll"><table class="dense">
   <thead>
     <tr><th>Nombre</th><th>Correo</th><th>Lecciones vistas</th><th>Media notas</th><th></th></tr>
   </thead>
@@ -23,7 +23,7 @@
     </tr>
     <% }) %>
   </tbody>
-</table>
+</table></div>
 <% } else { %>
 <div class="defbox"><b>Sin estudiantes</b>Crea el primero con el formulario de abajo.</div>
 <% } %>
