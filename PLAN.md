@@ -837,31 +837,37 @@ El agente debe ejecutar en este orden. **Cada fase termina con
 
 El proyecto está listo cuando:
 
-- [ ] `npm install && npm start` levanta en `http://localhost:3000`.
-- [ ] `.env` con las 4 variables; el servidor escucha en `process.env.PORT`.
-- [ ] Un estudiante se autoregistra en `/register` y entra al curso.
-- [ ] El login distingue email (admin) vs name (estudiante).
-- [ ] El admin sube un archivo ≤50MB y queda en `aula-media` con URL pública.
-- [ ] Al enviar un quiz, las incorrectas muestran feedback inline y el
+- [x] `npm install && npm start` levanta en `http://localhost:3000`.
+- [x] `.env` con las 4 variables; el servidor escucha en `process.env.PORT`.
+- [x] Un estudiante se autoregistra en `/register` y entra al curso.
+- [x] El login distingue email (admin) vs name (estudiante).
+- [x] El admin sube un archivo ≤50MB y queda en `aula-media` con URL pública.
+- [x] Al enviar un quiz, las incorrectas muestran feedback inline y el
       modal "Ver material" cierra con Escape, backdrop y botón.
-- [ ] `GET /c/:slug/ranking` muestra el top 20.
+- [x] `GET /c/:slug/ranking` muestra el top 20.
 - [ ] Despliegue en Render con las 4 variables de entorno.
-- [ ] Existe un admin creado por seed, con credenciales impresas en consola.
-- [ ] El admin puede loguearse y ver `/admin`.
-- [ ] El admin puede crear un curso, dos módulos, tres lecciones, un quiz
+      *(documentado en README §Deploy; ejecución pendiente de la autora)*
+- [x] Existe un admin creado por seed, con credenciales impresas en consola.
+- [x] El admin puede loguearse y ver `/admin`.
+- [x] El admin puede crear un curso, dos módulos, tres lecciones, un quiz
       y un examen final, todo desde la UI.
-- [ ] Un estudiante creado por el admin puede loguearse.
-- [ ] El estudiante ve el curso, navega lecciones, marca progreso.
-- [ ] El estudiante responde el quiz, ve su nota, y puede reintentar
+- [x] Un estudiante creado por el admin puede loguearse.
+- [x] El estudiante ve el curso, navega lecciones, marca progreso.
+- [x] El estudiante responde el quiz, ve su nota, y puede reintentar
       hasta el máximo configurado.
-- [ ] El examen final se bloquea hasta aprobar los quizzes (si así se
+- [x] El examen final se bloquea hasta aprobar los quizzes (si así se
       configuró).
-- [ ] Todo funciona en móvil (probado a 375px de ancho).
-- [ ] No hay scroll horizontal en ningún breakpoint.
-- [ ] El diseño coincide con `design/reference.html` en:
+- [x] Todo funciona en móvil (probado a 375px de ancho).
+- [x] No hay scroll horizontal en ningún breakpoint.
+- [x] El diseño coincide con `design/reference.html` en:
       colores, tipografía, bordes, densidad, layout de 3 columnas.
-- [ ] No hay console.log olvidados ni TODOs sin resolver.
-- [ ] `README.md` explica cómo crear el primer admin y cómo usar el panel.
+- [x] No hay console.log olvidados ni TODOs sin resolver.
+- [x] `README.md` explica cómo crear el primer admin y cómo usar el panel.
+
+> **Verificación (fase 6c)**: 20/21 criterios verificados con tests
+> automatizados (`tmp-check-a`…`tmp-check-f`) y revisión de código;
+> el despliegue en Render queda documentado en README pero sin
+> ejecutar. `smoke.md` es el checklist manual complementario.
 
 ---
 
