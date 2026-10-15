@@ -699,6 +699,14 @@ table.dense tr.me td{ background:var(--hl); font-weight:600; }
   font:600 12px/1.4 Tahoma, Verdana, sans-serif; letter-spacing:.04em;
 }
 
+/* ---------- 6b.2: temporizador del quiz en el topbar ---------- */
+.topbar-timer{
+  display:flex; align-items:center; gap:6px; white-space:nowrap;
+  font:700 13px/1 Tahoma, Verdana, sans-serif;
+  color:#f3efe6; letter-spacing:.06em;
+}
+.topbar-timer.is-low{ color:#ff8f6b; }
+
 /* ---------- UX-015: targets táctiles >= 44px ---------- */
 @media (pointer:coarse){
   .btn, .btn-sm{ min-height:44px; }

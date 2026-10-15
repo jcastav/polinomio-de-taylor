@@ -5,6 +5,10 @@
 
 <h1>Resultado del intento</h1>
 
+<% if (typeof timeoutFlash !== 'undefined' && timeoutFlash) { %>
+<p class="locked-flash" role="alert">Se acabó el tiempo: el intento se calificó automáticamente con las respuestas que tenías guardadas.</p>
+<% } %>
+
 <div class="result-score">
   <span class="big"><%= attempt.score %> / <%= attempt.max_score %></span>
   <span class="pct"><%= pct %>%</span>

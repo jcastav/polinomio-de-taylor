@@ -17,6 +17,13 @@
   <nav class="crumbs">
     <% if (typeof crumbs !== 'undefined' && crumbs) { %><%- crumbs %><% } else { %>Curso<% } %>
   </nav>
+  <% if (typeof examDeadline !== 'undefined' && examDeadline) { %>
+  <div class="topbar-timer" id="examTimer" data-deadline="<%= examDeadline %>">
+    <span aria-hidden="true">⏱</span>
+    <span id="examTimerText" role="timer">--:--</span>
+    <span class="sr">Tiempo restante para enviar el quiz.</span>
+  </div>
+  <% } %>
   <% if (user) { %>
   <% if (typeof course !== 'undefined' && course) { %>
   <a class="btn btn-ghost" href="/c/<%= course.slug %>/ranking">Ranking</a>

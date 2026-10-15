@@ -2,7 +2,7 @@
   <% if (quizBlock.savedFlash) { %>
   <p class="saved-flash" role="status">Borrador guardado · <%= quizBlock.savedFlash %></p>
   <% } %>
-  <form method="post" action="<%= quizBlock.action %>">
+  <form method="post" action="<%= quizBlock.action %>" id="quiz-form">
     <div class="quiz-head">
       <span class="t"><%= quizBlock.quiz.title %></span>
       <span class="pill"><%= quizBlock.renderedQs.length %> preguntas</span>

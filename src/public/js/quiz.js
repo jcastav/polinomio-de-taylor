@@ -12,6 +12,31 @@ document.addEventListener('change', (e) => {
   }
 });
 
+// 6b.2: cuenta atrás del quiz (§7.1). El deadline real vive en el
+// servidor (attempts.started_at + time_limit_min); esto solo lo pinta
+// y, al llegar a 0, envía el form para que se califique solo.
+(function () {
+  const box = document.getElementById('examTimer');
+  if (!box) return;
+  const deadline = Date.parse(box.getAttribute('data-deadline'));
+  if (Number.isNaN(deadline)) return;
+  const text = document.getElementById('examTimerText');
+  const form = document.getElementById('quiz-form');
+  const pad = (n) => (n < 10 ? '0' + n : String(n));
+
+  function tick() {
+    const left = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+    if (text) text.textContent = pad(Math.floor(left / 60)) + ':' + pad(left % 60);
+    box.classList.toggle('is-low', left <= 60);
+    if (left <= 0) {
+      if (form) form.submit();
+      return;
+    }
+    setTimeout(tick, 1000);
+  }
+  tick();
+})();
+
 // Reordenar (preguntas de tipo order): subir/bajar y sincronizar el hidden.
 document.addEventListener('click', (e) => {
   const up = e.target.closest && e.target.closest('.ord-up');

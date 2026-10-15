@@ -336,6 +336,32 @@ function remainingSeconds(attempt, quiz) {
   return left > 0 ? left : 0;
 }
 
+// 6b.2: instante límite del intento (ISO) o null si no aplica (sin
+// time_limit_min o sin started_at). Fuente de verdad: servidor (§7.1).
+function attemptDeadline(quiz, attempt) {
+  if (!quiz.time_limit_min || !attempt || !attempt.started_at) return null;
+  return new Date(
+    new Date(attempt.started_at).getTime() + quiz.time_limit_min * 60 * 1000
+  ).toISOString();
+}
+
+function attemptExpired(quiz, attempt) {
+  const d = attemptDeadline(quiz, attempt);
+  return d ? Date.now() > new Date(d).getTime() : false;
+}
+
+// 6b.2: si el intento sigue abierto y venció, se califica ya con lo
+// guardado (sin tocar answers) y se devuelve el intento graded.
+async function finalizeAttempt(attempt) {
+  if (attempt && attempt.status === 'in_progress') {
+    await scoreAttempt(attempt.id);
+    return unwrap(
+      await sb().from('attempts').select('*').eq('id', attempt.id).maybeSingle()
+    );
+  }
+  return attempt;
+}
+
 // Respuesta del estudiante en texto (q.payload ya parseado).
 function fmtResponse(q, resp) {
   if (!resp) return null;
@@ -421,6 +447,9 @@ module.exports = {
   saveAnswers,
   scoreAttempt,
   remainingSeconds,
+  attemptDeadline,
+  attemptExpired,
+  finalizeAttempt,
   fmtResponse,
   fmtCorrect,
 };

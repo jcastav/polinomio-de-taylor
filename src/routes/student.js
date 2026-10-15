@@ -318,7 +318,7 @@ async function quizView(req, course, quiz) {
     const usedQ = await quizLib.countUsedAttempts(req.user.id, quiz.id);
     return {
       quiz, attempt: null, used: usedQ, attemptNo: usedQ + 1,
-      renderedQs: [], exhausted: false, preparing: true,
+      renderedQs: [], exhausted: false, preparing: true, deadline: null,
     };
   }
   const attempt = await quizLib.ensureAttempt(req.user, quiz);
@@ -332,6 +332,8 @@ async function quizView(req, course, quiz) {
     renderedQs: attempt ? renderQuestions(quiz, attempt, questions, saved) : [],
     exhausted: !attempt,
     preparing: false,
+    // 6b.2: límite real del intento para el temporizador del topbar.
+    deadline: attempt ? quizLib.attemptDeadline(quiz, attempt) : null,
   };
 }
 
@@ -340,12 +342,19 @@ async function handleSend(req, res, course, quiz, backUrl) {
   const attempt = await quizLib.ensureAttempt(req.user, quiz);
   if (!attempt) return res.redirect(`/c/${course.slug}/quiz/${quiz.id}`);
 
+  const resultUrl = `/c/${course.slug}/quiz/${quiz.id}/result/${attempt.id}`;
+  // 6b.2: envío tardío: no se guardan respuestas nuevas; solo se
+  // califica lo ya guardado y se va a resultados (§7.1).
+  if (quizLib.attemptExpired(quiz, attempt)) {
+    await quizLib.finalizeAttempt(attempt);
+    return res.redirect(`${resultUrl}?timeout=1`);
+  }
+
   const questions = await quizLib.getQuestions(quiz.id);
   await quizLib.saveAnswers(attempt.id, questions, req.body);
   await quizLib.scoreAttempt(attempt.id);
 
-  const dest = `/c/${course.slug}/quiz/${quiz.id}/result/${attempt.id}`;
-  res.redirect(backUrl ? `${dest}?back=${encodeURIComponent(backUrl)}` : dest);
+  res.redirect(backUrl ? `${resultUrl}?back=${encodeURIComponent(backUrl)}` : resultUrl);
 }
 
 // GET / → redirige al curso publicado activo (§6.2).
@@ -543,6 +552,14 @@ router.get('/c/:slug/quiz/:quizId', requireStudent, wrap(async (req, res) => {
 
   const { tree, stats, exam, nextLesson } = await courseContext(req, course);
   const qv = await quizView(req, course, quiz);
+
+  // 6b.2: si el intento abierto ya venció, se califica solo y va a
+  // resultados con ?timeout=1 (sin depender del click del estudiante).
+  if (qv.attempt && quizLib.attemptExpired(quiz, qv.attempt)) {
+    await quizLib.finalizeAttempt(qv.attempt);
+    return res.redirect(`/c/${course.slug}/quiz/${quiz.id}/result/${qv.attempt.id}?timeout=1`);
+  }
+
   Object.assign(qv, {
     action: `/c/${course.slug}/quiz/${quiz.id}/submit`,
     saveUrl: `/c/${course.slug}/quiz/${quiz.id}/save`,
@@ -557,6 +574,8 @@ router.get('/c/:slug/quiz/:quizId', requireStudent, wrap(async (req, res) => {
   Object.assign(res.locals, {
     course, tree, stats, exam, nextLesson, currentLessonId: null,
     quizBlock: qv, quiz: qv.quiz, attemptNo: qv.attemptNo, exhausted: qv.exhausted,
+    // 6b.2: cuenta atrás en el topbar (solo si el quiz tiene tiempo).
+    examDeadline: qv.deadline,
   });
 
   res.render('layout', {
@@ -576,6 +595,12 @@ router.post('/c/:slug/quiz/:quizId/save', requireStudent, wrap(async (req, res) 
   const attempt = await quizLib.ensureAttempt(req.user, quiz);
   const quizUrl = `/c/${course.slug}/quiz/${quiz.id}`;
   if (!attempt) return res.redirect(quizUrl);
+
+  // 6b.2: tras el límite no se acepta guardar (ni respuestas nuevas).
+  if (quizLib.attemptExpired(quiz, attempt)) {
+    await quizLib.finalizeAttempt(attempt);
+    return res.redirect(`/c/${course.slug}/quiz/${quiz.id}/result/${attempt.id}?timeout=1`);
+  }
 
   const questions = await quizLib.getQuestions(quiz.id);
   await quizLib.saveAnswers(attempt.id, questions, req.body);
@@ -677,6 +702,8 @@ router.get('/c/:slug/quiz/:quizId/result/:attemptId', requireStudent, wrap(async
     back: safeBack(req.query.back),
     quizUrl: `/c/${course.slug}/quiz/${quiz.id}`,
     canRetry: !attempt.passed && attemptNo < (quiz.max_attempts || 3),
+    // 6b.2: banner "Se acabó el tiempo" en resultados.
+    timeoutFlash: req.query.timeout === '1',
   });
 
   res.render('layout', {
