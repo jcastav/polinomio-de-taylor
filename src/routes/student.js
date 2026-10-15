@@ -122,6 +122,9 @@ async function buildTree(course, userId) {
   prog.forEach((p) => done.add(Number(p.lesson_id)));
 
   return mods.map((m) => {
+    const modLessons = lessons
+      .filter((l) => l.module_id === m.id)
+      .sort((a, b) => a.position - b.position);
     const qz = quizzes.find((q) => q.module_id === m.id) || null;
     let quiz = null;
     if (qz) {
@@ -131,14 +134,16 @@ async function buildTree(course, userId) {
       if (passed) state = 'approved';
       else if (forQ.some((a) => a.status === 'in_progress')) state = 'running';
       else if (forQ.some((a) => a.status === 'graded')) state = 'failed';
-      quiz = { id: qz.id, title: qz.title, kind: qz.kind, passed, state };
+      // §9.7: quiz de módulo bloqueado hasta completar sus lecciones;
+      // excepción para quien ya tiene intentos graded (ve resultado/reintenta).
+      const complete = modLessons.every((l) => done.has(Number(l.id)));
+      const locked = qz.kind === 'quiz' && !complete &&
+        !forQ.some((a) => a.status === 'graded');
+      quiz = { id: qz.id, title: qz.title, kind: qz.kind, passed, state, locked };
     }
     return {
       ...m,
-      lessons: lessons
-        .filter((l) => l.module_id === m.id)
-        .sort((a, b) => a.position - b.position)
-        .map((l) => ({ ...l, done: done.has(Number(l.id)) })),
+      lessons: modLessons.map((l) => ({ ...l, done: done.has(Number(l.id)) })),
       quiz,
     };
   });
@@ -354,6 +359,8 @@ router.get('/c/:slug/l/:lessonId', requireStudent, wrap(async (req, res) => {
     next,
     isLastLesson,
     moduleInfo,
+    // §9.7: aviso al ser redirigido desde un quiz bloqueado (?locked=1).
+    lockedFlash: req.query.locked === '1',
   });
 
   res.render('layout', {
@@ -398,6 +405,36 @@ router.get('/c/:slug/quiz/:quizId', requireStudent, wrap(async (req, res) => {
   if (!(await courseOk(req, course))) return res.renderError(404, 'Curso no encontrado');
   const quiz = await findQuiz(course, req.params.quizId);
   if (!quiz) return res.renderError(404, 'Quiz no encontrado');
+
+  // §9.7: guard del servidor — quiz de módulo bloqueado hasta completar
+  // TODAS sus lecciones. Excepción: quien ya tiene intentos graded del
+  // quiz conserva el acceso (resultado/reintento). El sidebar es solo
+  // cosmético; esta regla es la que vale.
+  if (quiz.kind === 'quiz' && quiz.module_id && req.user.role !== 'admin') {
+    const graded = unwrap(
+      await sb().from('attempts').select('id')
+        .eq('quiz_id', quiz.id).eq('user_id', req.user.id)
+        .eq('status', 'graded').limit(1)
+    );
+    if (!graded.length) {
+      const modLessons = unwrap(
+        await sb().from('lessons').select('id')
+          .eq('module_id', quiz.module_id).order('position')
+      );
+      if (modLessons.length) {
+        const prog = unwrap(
+          await sb().from('lesson_progress').select('lesson_id')
+            .eq('user_id', req.user.id)
+            .in('lesson_id', modLessons.map((l) => l.id))
+        );
+        const doneSet = new Set(prog.map((p) => Number(p.lesson_id)));
+        const pending = modLessons.find((l) => !doneSet.has(Number(l.id)));
+        if (pending) {
+          return res.redirect(`/c/${course.slug}/l/${pending.id}?locked=1`);
+        }
+      }
+    }
+  }
 
   const { tree, stats, nextLesson } = await courseContext(req, course);
   const qv = await quizView(req, course, quiz);

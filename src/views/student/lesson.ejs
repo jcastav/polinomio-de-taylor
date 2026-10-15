@@ -5,6 +5,10 @@
 
 <h1><%= lesson.title %></h1>
 
+<% if (lockedFlash) { %>
+<p class="locked-flash" role="alert">Completa las lecciones del módulo para acceder al quiz</p>
+<% } %>
+
 <div class="lesson-body">
   <%- lesson.html %>
 </div>

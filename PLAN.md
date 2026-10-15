@@ -588,6 +588,8 @@ Todas las respuestas HTML, salvo endpoints HTMX que devuelven fragmentos.
 - Botones del pie: "← Lección anterior" (UX-017), "Marcar como
   completada" + "Siguiente lección".
 - Se guarda progreso por lección (tabla `lesson_progress`).
+- El bloqueo del quiz de módulo hasta completar las lecciones vive en
+  §9.7 (el CTA de este apartado sigue igual).
 
 > `lesson_progress` quedó incluida en §4 (supabase/schema.sql).
 
@@ -641,6 +643,24 @@ Todas las respuestas HTML, salvo endpoints HTMX que devuelven fragmentos.
   - link: botón/enlace grande con el título del recurso
 - Modal responsive, cierra con Escape, click en backdrop o botón
   "Cerrar". Borde duro 1px, sin border-radius, sin animaciones.
+
+### 9.7 Quiz de módulo
+- Cada módulo puede tener a lo sumo un quiz (`kind='quiz'` con
+  `module_id` no nulo).
+- Bloqueado hasta que TODAS las lecciones del módulo estén completadas
+  por el estudiante (misma lógica que §9.3 pero sobre lecciones en vez
+  de sobre quizzes).
+- En el sidebar: ítem con estado "bloqueado" (icono 🔒, color
+  `--muted`, `cursor:not-allowed`, sin enlace; cosmético).
+- En la ruta `GET /c/:slug/quiz/:quizId`: guard en servidor que
+  redirige a la primera lección pendiente del módulo con flash
+  "Completa las lecciones del módulo para acceder al quiz" — el guard
+  del servidor es la regla real.
+- Excepción: si el estudiante YA tiene intentos `graded` en ese quiz,
+  el ítem queda desbloqueado para consultar resultado o reintentar. El
+  guard del servidor también respeta esta excepción.
+- Referencia cruzada en §9.2 (el CTA sigue ahí, pero la regla de
+  bloqueo vive aquí).
 
 ---
 

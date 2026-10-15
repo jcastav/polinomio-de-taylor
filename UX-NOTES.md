@@ -75,10 +75,19 @@ No abordados en esta ronda (acordado con la revisión):
 1. **Quiz fuera de la lección**: el quiz del módulo nunca se embebe en el
    contenido de la lección; es un ítem hermano en el árbol con badge,
    estado visual y ruta propia (A1/A2/§9.2).
-2. **CTA siempre visible**: el bloque "Avanzar al quiz" aparece siempre al
-   final de la última lección del módulo; se habilita cuando el módulo
-   está completo y queda deshabilitado con hint mientras haya lecciones
-   pendientes (A3).
+2. **CTA siempre visible + hard-lock del quiz de módulo**
+   *(decisión actualizada; antes: ~~solo CTA deshabilitado, sin
+   hard-lock en v1~~)*: el bloque "Avanzar al quiz" aparece siempre al
+   final de la última lección del módulo y se habilita cuando el módulo
+   está completo (A3). El quiz del módulo **SÍ se bloquea** hasta
+   completar todas sus lecciones: guard en servidor en
+   `GET /c/:slug/quiz/:quizId` → redirige a la primera lección pendiente
+   con flash "Completa las lecciones del módulo para acceder al quiz";
+   el sidebar muestra el ítem "bloqueado" (🔒, `--muted`,
+   `cursor:not-allowed`, sin enlace; cosmético). **Excepción**: si el
+   estudiante ya tiene intentos `graded` del quiz (aprobado o no),
+   conserva el acceso para ver resultados o reintentar
+   (PLAN.md §9.7).
 3. **Quiz en pantalla completa** con borrador, reintentos y resultados;
    los intentos agotados muestran una vista válida (no un error) (A4).
 4. **Ranking visible y por pestañas**: enlace en el topbar (solo páginas

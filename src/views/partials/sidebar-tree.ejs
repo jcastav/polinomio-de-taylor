@@ -25,6 +25,15 @@
     <% if (mod.quiz) { %>
     <% const qz = mod.quiz; %>
     <li>
+      <% if (qz.locked) { %>
+      <span class="qstate qstate-locked" aria-disabled="true"
+            title="Completa las lecciones del módulo para acceder al quiz">
+        <span class="st" aria-hidden="true">🔒</span>
+        <span class="sr">Bloqueado.</span>
+        <%= qz.title %>
+        <span class="tag"><%= qz.kind === 'exam' ? '[EXAMEN]' : '[QUIZ]' %></span>
+      </span>
+      <% } else { %>
       <a href="/c/<%= course.slug %>/quiz/<%= qz.id %>"
          class="qstate qstate-<%= qz.state %><%= qz.state === 'approved' ? ' done' : '' %>">
         <span class="st" aria-hidden="true"><%= QICON[qz.state] %></span>
@@ -32,6 +41,7 @@
         <%= qz.title %>
         <span class="tag"><%= qz.kind === 'exam' ? '[EXAMEN]' : '[QUIZ]' %></span>
       </a>
+      <% } %>
     </li>
     <% } %>
   </ul>

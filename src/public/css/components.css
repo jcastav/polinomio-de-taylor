@@ -683,6 +683,19 @@ table.dense tr.me td{ background:var(--hl); font-weight:600; }
   font:600 12px/1.4 Tahoma, Verdana, sans-serif; letter-spacing:.04em;
 }
 
+/* ---------- §9.7: quiz de módulo bloqueado ---------- */
+/* Ítem del sidebar: cosmético; el guard real vive en la ruta del quiz. */
+.mod li .qstate-locked{ color:var(--muted); cursor:not-allowed; }
+.mod li .qstate-locked .st{ color:var(--muted); }
+.mod li .qstate-locked .tag{ opacity:.6; }
+
+/* Aviso tras ser redirigido desde un quiz bloqueado (?locked=1). */
+.locked-flash{
+  display:block; margin:8px 0 14px; padding:9px 11px;
+  background:#f7ece7; border:1px solid var(--accent); color:var(--accent);
+  font:600 12px/1.4 Tahoma, Verdana, sans-serif; letter-spacing:.04em;
+}
+
 /* ---------- UX-015: targets táctiles >= 44px ---------- */
 @media (pointer:coarse){
   .btn, .btn-sm{ min-height:44px; }
