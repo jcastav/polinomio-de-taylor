@@ -594,3 +594,45 @@ body.modal-open .modal.is-open{ display:block; }
 
 .fb-add{ margin-top:8px; }
 .fb-upload{ position:relative; overflow:hidden; margin:0; }
+
+/* ---------- UX GRUPO A: CTA de quiz, estados del árbol, ranking ---------- */
+.sr{
+  position:absolute; width:1px; height:1px; overflow:hidden;
+  clip:rect(0 0 0 0); white-space:nowrap;
+}
+
+.mod li a.qstate-pending  .st{ color:var(--muted); }
+.mod li a.qstate-running  .st{ color:#a06e14; }
+.mod li a.qstate-failed   .st{ color:var(--accent); }
+.mod li a.qstate-approved .st{ color:var(--accent-2); }
+.mod li a.qstate-failed{ color:var(--ink); }
+
+.quiz-cta{
+  display:flex; flex-direction:column; gap:8px;
+  margin:26px 0 4px; padding:18px;
+  background:var(--panel); border:1px solid var(--line); border-radius:10px;
+}
+.btn-big{ width:100%; justify-content:center; padding:12px 18px; font-size:15px; }
+.quiz-cta .btn[disabled]{ opacity:.55; cursor:not-allowed; }
+.quiz-cta .btn[disabled]:hover{ background:var(--accent); }
+.cta-hint{ margin:0; font-size:12.5px; color:var(--muted); }
+
+.tabs{ display:flex; gap:4px; margin:16px 0 0; border-bottom:1px solid var(--line); }
+.tab{
+  padding:7px 14px; font-size:13px; color:var(--muted);
+  border:1px solid transparent; border-bottom:0; border-radius:8px 8px 0 0;
+}
+.tab:hover{ background:var(--hl); text-decoration:none; color:var(--ink); }
+.tab.active{
+  background:var(--paper); border-color:var(--line);
+  color:var(--ink); font-weight:700; margin-bottom:-1px; padding-bottom:8px;
+}
+
+.table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+table.dense tr.me td{ background:var(--hl); font-weight:600; }
+.me-tag{
+  font:700 9px/1 Tahoma, sans-serif; letter-spacing:.08em; text-transform:uppercase;
+  background:var(--accent); color:#fff; padding:2px 5px; margin-left:6px;
+  border-radius:3px; vertical-align:1px;
+}
+.footnote{ margin:8px 0 0; font-size:12px; color:var(--muted); }

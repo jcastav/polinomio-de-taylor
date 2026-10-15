@@ -76,7 +76,8 @@ async function moduleQuiz(course, moduleId) {
 }
 
 // Árbol módulo → lecciones con estado de progreso del usuario (§9.1).
-// Cada módulo lleva su quiz (si tiene) y si ya está aprobado.
+// Cada módulo lleva su quiz (si tiene): kind, passed y estado visual
+// (pending/running/failed/approved) para los iconos del sidebar (A2).
 async function buildTree(course, userId) {
   const mods = unwrap(
     await sb().from('modules')
@@ -96,7 +97,7 @@ async function buildTree(course, userId) {
     await sb().from('quizzes')
       .select('id, module_id, title, kind')
       .eq('course_id', course.id)
-      .eq('kind', 'quiz')
+      .in('module_id', mods.map((m) => m.id))
   );
 
   const done = new Set();
@@ -110,29 +111,35 @@ async function buildTree(course, userId) {
     prog.forEach((p) => done.add(Number(p.lesson_id)));
   }
 
-  const quizIds = quizzes.filter((q) => q.module_id).map((q) => q.id);
-  const passed = new Set();
-  if (userId && quizIds.length) {
-    const att = unwrap(
-      await sb().from('attempts')
-        .select('quiz_id')
-        .eq('user_id', userId)
-        .in('quiz_id', quizIds)
-        .eq('status', 'graded')
-        .eq('passed', true)
-    );
-    att.forEach((a) => passed.add(Number(a.quiz_id)));
-  }
+  const quizIds = quizzes.map((q) => q.id);
+  const att = (userId && quizIds.length)
+    ? unwrap(
+        await sb().from('attempts')
+          .select('quiz_id, status, passed')
+          .eq('user_id', userId)
+          .in('quiz_id', quizIds)
+      )
+    : [];
 
   return mods.map((m) => {
     const qz = quizzes.find((q) => q.module_id === m.id) || null;
+    let quiz = null;
+    if (qz) {
+      const forQ = att.filter((a) => Number(a.quiz_id) === Number(qz.id));
+      const passed = forQ.some((a) => a.status === 'graded' && a.passed);
+      let state = 'pending';
+      if (passed) state = 'approved';
+      else if (forQ.some((a) => a.status === 'in_progress')) state = 'running';
+      else if (forQ.some((a) => a.status === 'graded')) state = 'failed';
+      quiz = { id: qz.id, title: qz.title, kind: qz.kind, passed, state };
+    }
     return {
       ...m,
       lessons: lessons
         .filter((l) => l.module_id === m.id)
         .sort((a, b) => a.position - b.position)
         .map((l) => ({ ...l, done: done.has(Number(l.id)) })),
-      quiz: qz ? { id: qz.id, title: qz.title, passed: passed.has(Number(qz.id)) } : null,
+      quiz,
     };
   });
 }
@@ -292,7 +299,8 @@ router.get('/c/:slug', requireStudent, wrap(async (req, res) => {
   });
 }));
 
-// Lección con markdown renderizado y quiz embebido al final (§9.2).
+// Lección con markdown renderizado (§9.2). El quiz NO se embebe: es
+// ítem hermano en el árbol y se entra desde su propia ruta (UX decisiones).
 router.get('/c/:slug/l/:lessonId', requireStudent, wrap(async (req, res) => {
   const course = await findCourse(req.params.slug);
   if (!(await courseOk(req, course))) return res.status(404).send('Curso no encontrado');
@@ -320,22 +328,15 @@ router.get('/c/:slug/l/:lessonId', requireStudent, wrap(async (req, res) => {
   const next = idx >= 0 ? stats.flat[idx + 1] || null : null;
   const completed = idx >= 0 ? stats.flat[idx].done : false;
 
-  // Quiz del módulo embebido en la última lección (§9.2).
-  let quizBlock = null;
-  const qz = await moduleQuiz(course, mod.id);
-  if (qz) {
-    const modTree = tree.find((m) => m.id === mod.id);
-    const isLast = modTree && modTree.lessons.length
-      && modTree.lessons[modTree.lessons.length - 1].id === lesson.id;
-    if (isLast) {
-      quizBlock = await quizView(req, course, qz);
-      Object.assign(quizBlock, {
-        action: `/c/${course.slug}/l/${lesson.id}/check`,
-        saveUrl: `/c/${course.slug}/quiz/${qz.id}/save`,
-        backUrl: `/c/${course.slug}/l/${lesson.id}`,
-      });
-    }
-  }
+  // CTA "Avanzar al quiz" en la última lección del módulo (A3).
+  const modTree = tree.find((m) => m.id === mod.id) || null;
+  const isLastLesson = !!(modTree && modTree.lessons.length &&
+    modTree.lessons[modTree.lessons.length - 1].id === lesson.id);
+  const moduleInfo = modTree ? {
+    quiz: modTree.quiz,
+    lessonsTotal: modTree.lessons.length,
+    lessonsDone: modTree.lessons.filter((l) => l.done).length,
+  } : null;
 
   Object.assign(res.locals, {
     course, tree, stats, nextLesson: next,
@@ -344,7 +345,8 @@ router.get('/c/:slug/l/:lessonId', requireStudent, wrap(async (req, res) => {
     lesson: { ...lesson, html: renderMarkdown(lesson.content) },
     completed,
     next,
-    quizBlock,
+    isLastLesson,
+    moduleInfo,
   });
 
   res.render('layout', {
@@ -433,30 +435,6 @@ router.post('/c/:slug/quiz/:quizId/submit', requireStudent, wrap(async (req, res
   const quiz = await findQuiz(course, req.params.quizId);
   if (!quiz) return res.status(404).send('Quiz no encontrado');
   await handleSend(req, res, course, quiz, safeBack(req.body.back));
-}));
-
-// Envío del quiz embebido en la lección (§6.2, §9.2).
-router.post('/c/:slug/l/:lessonId/check', requireStudent, wrap(async (req, res) => {
-  const course = await findCourse(req.params.slug);
-  if (!(await courseOk(req, course))) return res.status(404).send('Curso no encontrado');
-
-  const lesson = unwrap(
-    await sb().from('lessons').select('id, module_id').eq('id', req.params.lessonId).maybeSingle()
-  );
-  if (!lesson) return res.status(404).send('Lección no encontrada');
-
-  const mod = unwrap(
-    await sb().from('modules').select('id, course_id').eq('id', lesson.module_id).maybeSingle()
-  );
-  if (!mod || mod.course_id !== course.id) {
-    return res.status(404).send('Lección no encontrada');
-  }
-
-  const quiz = await moduleQuiz(course, mod.id);
-  if (!quiz) return res.status(404).send('Quiz no encontrado');
-
-  const back = safeBack(req.body.back) || `/c/${course.slug}/l/${lesson.id}`;
-  await handleSend(req, res, course, quiz, back);
 }));
 
 // Página de resultados de un intento con retroalimentación (§7.5, §9.6).
@@ -594,6 +572,120 @@ router.get('/c/:slug/results', requireStudent, wrap(async (req, res) => {
     view: 'student/history',
     title: `Resultados — ${course.title} — Aula`,
     crumbs: `Curso <span class="sep">/</span> <b>Resultados</b>`,
+  });
+}));
+
+// Ranking del curso con dos pestañas (§4.2/§9.5 + A5):
+//   /c/:slug/ranking              → pestaña "Curso completo"
+//   /c/:slug/ranking?quiz=:quizId → pestaña "Este quiz"
+// NOTA (UX-NOTES): se computa en JS porque PostgREST no ejecuta queries
+// con window functions. Si el curso supera ~200 estudiantes, mover la
+// consulta de §4.2 a una función Postgres (rpc) o vista materializada.
+router.get('/c/:slug/ranking', requireStudent, wrap(async (req, res) => {
+  const course = await findCourse(req.params.slug);
+  if (!(await courseOk(req, course))) return res.status(404).send('Curso no encontrado');
+
+  const { tree, stats, nextLesson } = await courseContext(req, course);
+
+  const quizzes = unwrap(
+    await sb().from('quizzes')
+      .select('id, title, kind')
+      .eq('course_id', course.id)
+  );
+  const quizById = new Map(quizzes.map((q) => [Number(q.id), q]));
+  const quizParam = req.query.quiz ? Number(req.query.quiz) : null;
+  const activeQuiz = quizParam && quizById.has(quizParam) ? quizById.get(quizParam) : null;
+
+  const attempts = quizzes.length
+    ? unwrap(
+        await sb().from('attempts')
+          .select('user_id, quiz_id, score, max_score')
+          .eq('status', 'graded')
+          .in('quiz_id', quizzes.map((q) => q.id))
+      )
+    : [];
+
+  const userIds = [...new Set(attempts.map((a) => Number(a.user_id)))];
+  const users = userIds.length
+    ? unwrap(await sb().from('users').select('id, name').in('id', userIds))
+    : [];
+  const nameById = new Map(users.map((u) => [Number(u.id), u.name]));
+  const nameOf = (id) => nameById.get(Number(id)) || 'Estudiante';
+  const pctOf = (a) => (a.max_score > 0 ? Math.round((a.score * 100) / a.max_score) : 0);
+
+  const meId = Number(req.user.id);
+  let rows = [];
+  let allRows = [];
+
+  if (activeQuiz) {
+    // Pestaña "Este quiz": mejor nota por estudiante + nº de intentos (§7.3:
+    // solo intentos graded gastan cupo y puntúan).
+    const byUser = new Map();
+    for (const a of attempts) {
+      if (Number(a.quiz_id) !== activeQuiz.id) continue;
+      const cur = byUser.get(Number(a.user_id)) || { best: 0, tries: 0 };
+      cur.tries += 1;
+      cur.best = Math.max(cur.best, pctOf(a));
+      byUser.set(Number(a.user_id), cur);
+    }
+    allRows = [...byUser.entries()].map(([uid, v]) => ({
+      name: nameOf(uid), best: v.best, tries: v.tries, isMe: uid === meId,
+    }));
+    allRows.sort((a, b) => b.best - a.best || a.tries - b.tries || a.name.localeCompare(b.name, 'es'));
+    allRows.forEach((r, i) => { r.pos = i + 1; });
+    rows = allRows.slice(0, 20);
+  } else {
+    // Pestaña "Curso completo": mejor % por usuario y quiz, examen ×2 (§4.2).
+    // Desempate: menos intentos, luego alfabético (§9.5).
+    const best = new Map(); // `${uid}:${quizId}` → pct
+    const triesByUser = new Map();
+    for (const a of attempts) {
+      const uid = Number(a.user_id);
+      const qid = Number(a.quiz_id);
+      const pct = pctOf(a);
+      const key = `${uid}:${qid}`;
+      if (!best.has(key) || pct > best.get(key)) best.set(key, pct);
+      triesByUser.set(uid, (triesByUser.get(uid) || 0) + 1);
+    }
+    const byUser = new Map();
+    for (const [key, pct] of best) {
+      const [uid, qid] = key.split(':').map(Number);
+      const quiz = quizById.get(qid);
+      if (!quiz) continue;
+      const cur = byUser.get(uid) || { total: 0, quizzes: 0 };
+      cur.total += quiz.kind === 'exam' ? 2 * pct : pct;
+      if (quiz.kind !== 'exam') cur.quizzes += 1;
+      byUser.set(uid, cur);
+    }
+    allRows = [...byUser.entries()].map(([uid, v]) => ({
+      name: nameOf(uid),
+      total: Math.round(v.total),
+      quizzes: v.quizzes,
+      tries: triesByUser.get(uid) || 0,
+      isMe: uid === meId,
+    }));
+    allRows.sort((a, b) => b.total - a.total || a.tries - b.tries || a.name.localeCompare(b.name, 'es'));
+    allRows.forEach((r, i) => { r.pos = i + 1; });
+    rows = allRows.slice(0, 20);
+  }
+
+  // Resaltar al usuario actual: si no entra en el top 20, añadir su fila
+  // con su posición real (A5: "debe verse resaltado").
+  if (!rows.some((r) => r.isMe)) {
+    const mine = allRows.find((r) => r.isMe);
+    if (mine) rows.push(mine);
+  }
+
+  Object.assign(res.locals, {
+    course, tree, stats, nextLesson, currentLessonId: null,
+    rows, activeQuiz, quizzes,
+    tab: activeQuiz ? 'quiz' : 'course',
+  });
+
+  res.render('layout', {
+    view: 'student/ranking',
+    title: `Ranking — ${course.title} — Aula`,
+    crumbs: `Curso <span class="sep">/</span> <b>Ranking</b>`,
   });
 }));
 

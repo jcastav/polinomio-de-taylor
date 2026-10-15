@@ -18,6 +18,9 @@
     <% if (typeof crumbs !== 'undefined' && crumbs) { %><%- crumbs %><% } else { %>Curso<% } %>
   </nav>
   <% if (user) { %>
+  <% if (typeof course !== 'undefined' && course) { %>
+  <a class="btn btn-ghost" href="/c/<%= course.slug %>/ranking">Ranking</a>
+  <% } %>
   <form method="post" action="/logout" class="topbar-form">
     <button class="btn btn-ghost" type="submit">Salir</button>
   </form>

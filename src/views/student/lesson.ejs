@@ -9,22 +9,23 @@
   <%- lesson.html %>
 </div>
 
-<% if (quizBlock) { %>
-<% if (quizBlock.exhausted) { %>
-<section class="quiz">
-  <div class="quiz-head">
-    <span class="t"><%= quizBlock.quiz.title %></span>
-    <span class="pill">Intentos agotados</span>
-    <span class="right"><%= quizBlock.quiz.max_attempts %> intentos usados</span>
-  </div>
-  <div class="quiz-foot">
-    <span class="hint">Revisa tus notas en el historial de resultados.</span>
-    <a class="btn" href="/c/<%= course.slug %>/results">Ver historial</a>
-  </div>
+<% if (isLastLesson && moduleInfo && moduleInfo.quiz) { %>
+<%
+  const pendingLessons = moduleInfo.lessonsTotal - moduleInfo.lessonsDone;
+  const unlocked = pendingLessons === 0;
+%>
+<section class="quiz-cta">
+  <% if (unlocked) { %>
+  <a class="btn btn-accent btn-big" href="/c/<%= course.slug %>/quiz/<%= moduleInfo.quiz.id %>">
+    Avanzar al quiz del módulo →
+  </a>
+  <% } else { %>
+  <button class="btn btn-accent btn-big" type="button" disabled aria-disabled="true">
+    Avanzar al quiz del módulo →
+  </button>
+  <p class="cta-hint">Completa las <%= pendingLessons %> lecciones del módulo para desbloquearlo</p>
+  <% } %>
 </section>
-<% } else { %>
-<%- include('../partials/quiz-block', { quizBlock }) %>
-<% } %>
 <% } %>
 
 <div class="lesson-foot">

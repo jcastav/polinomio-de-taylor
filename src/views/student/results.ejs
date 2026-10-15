@@ -50,8 +50,9 @@
   <% if (canRetry) { %>
   <a class="btn btn-accent" href="<%= quizUrl %>">Reintentar</a>
   <% } %>
+  <a class="btn btn-dark" href="/c/<%= course.slug %>/ranking?quiz=<%= quiz.id %>">Ver ranking</a>
   <a class="btn" href="/c/<%= course.slug %>/results">Ver historial</a>
-  <a class="btn btn-dark" href="<%= back || `/c/${course.slug}` %>">Volver</a>
+  <a class="btn" href="<%= back || `/c/${course.slug}` %>">Volver</a>
 </div>
 
 <% items.forEach((it) => { if (!it.correct && it.resources.length) { %>

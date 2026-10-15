@@ -1,0 +1,61 @@
+<div class="eyebrow">
+  <span>Ranking</span>
+  <span class="meta"><%= rows.length %> en la tabla</span>
+</div>
+
+<h1><%= activeQuiz ? activeQuiz.title : 'Curso completo' %></h1>
+
+<% if (quizzes.length) { %>
+<nav class="tabs" aria-label="Vistas del ranking">
+  <% if (activeQuiz) { %>
+  <a class="tab active" href="/c/<%= course.slug %>/ranking?quiz=<%= activeQuiz.id %>">Este quiz</a>
+  <% } %>
+  <a class="tab<%= activeQuiz ? '' : ' active' %>" href="/c/<%= course.slug %>/ranking">Curso completo</a>
+</nav>
+<% } %>
+
+<% if (!rows.length) { %>
+<div class="defbox">
+  <b>Sin datos todavía</b>
+  <%= activeQuiz
+    ? 'Nadie ha enviado intentos de este quiz por ahora.'
+    : 'Todavía no hay intentos enviados en el curso.' %>
+</div>
+<div class="result-actions">
+  <a class="btn btn-dark" href="/c/<%= course.slug %>">Volver al curso</a>
+</div>
+<% } else { %>
+<div class="table-scroll">
+<table class="dense">
+  <thead>
+    <% if (activeQuiz) { %>
+    <tr><th>Posición</th><th>Nombre</th><th>Mejor nota</th><th>Intentos</th></tr>
+    <% } else { %>
+    <tr><th>Posición</th><th>Nombre</th><th>Puntaje total</th><th>Quizzes completados</th><th>Intentos</th></tr>
+    <% } %>
+  </thead>
+  <tbody>
+    <% rows.forEach((r) => { %>
+    <tr class="<%= r.isMe ? 'me' : '' %>">
+      <td><%= r.pos %></td>
+      <td><%= r.name %><% if (r.isMe) { %> <span class="me-tag">tú</span><% } %></td>
+      <% if (activeQuiz) { %>
+      <td><%= r.best %>%</td>
+      <td><%= r.tries %></td>
+      <% } else { %>
+      <td><%= r.total %></td>
+      <td><%= r.quizzes %></td>
+      <td><%= r.tries %></td>
+      <% } %>
+    </tr>
+    <% }) %>
+  </tbody>
+</table>
+</div>
+<p class="footnote">
+  <% if (!activeQuiz) { %>El examen final puntúa ×2. <% } %>Solo se cuentan intentos enviados.
+</p>
+<div class="result-actions">
+  <a class="btn btn-dark" href="/c/<%= course.slug %>">Volver al curso</a>
+</div>
+<% } %>
