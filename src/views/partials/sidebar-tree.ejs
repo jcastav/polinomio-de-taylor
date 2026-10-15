@@ -54,3 +54,29 @@
   <div class="txt"><span>Progreso</span><span>0 / 0</span></div>
 </div>
 <% } %>
+
+<% if (typeof exam !== 'undefined' && exam) { %>
+<div class="mod">
+  <button type="button" aria-expanded="true" aria-controls="modlist-exam">Examen final <span class="caret">▼</span></button>
+  <ul id="modlist-exam">
+    <li>
+      <% if (exam.locked) { %>
+      <span class="qstate qstate-locked" aria-disabled="true"
+            title="Aprueba todos los quizzes del módulo para acceder al examen">
+        <span class="st" aria-hidden="true">🔒</span>
+        <span class="sr">Bloqueado.</span>
+        <%= exam.title %>
+        <span class="tag">[EXAMEN]</span>
+      </span>
+      <% } else { %>
+      <a href="/c/<%= course.slug %>/exam" class="qstate qstate-<%= exam.state %><%= exam.state === 'approved' ? ' done' : '' %>">
+        <span class="st" aria-hidden="true"><%= QICON[exam.state] %></span>
+        <span class="sr"><%= exam.state === 'approved' ? 'Examen completado' : QWORD[exam.state] %>.</span>
+        <%= exam.title %>
+        <span class="tag">[EXAMEN]</span>
+      </a>
+      <% } %>
+    </li>
+  </ul>
+</div>
+<% } %>

@@ -192,15 +192,68 @@ async function loadQuizStats(course, userId) {
 
 // Contexto común: árbol + progreso + stats de quizzes (vistas con layout).
 // UX-016: árbol y stats de quizzes no dependen entre sí → en paralelo.
+// 6b.3: el examen final viaja aparte (buildExam) para el sidebar.
 async function courseContext(req, course) {
-  const [tree, quizStats] = await Promise.all([
+  const [tree, quizStats, exam] = await Promise.all([
     buildTree(course, req.user.id),
     loadQuizStats(course, req.user.id),
+    buildExam(course, req.user),
   ]);
   const stats = computeStats(tree);
   stats.quizStats = quizStats;
   const nextLesson = stats.flat.find((l) => !l.done) || null;
-  return { tree, stats, nextLesson };
+  return { tree, stats, exam, nextLesson };
+}
+
+// 6b.1: quizzes de módulo (kind='quiz') sin intento aprobado (§9.3).
+async function missingModuleQuizzes(course, userId) {
+  const quizzes = unwrap(
+    await sb().from('quizzes').select('id, title')
+      .eq('course_id', course.id).eq('kind', 'quiz')
+  );
+  if (!quizzes.length) return [];
+  const att = unwrap(
+    await sb().from('attempts').select('quiz_id, passed')
+      .eq('user_id', userId).eq('status', 'graded')
+      .in('quiz_id', quizzes.map((q) => q.id))
+  );
+  const passedIds = new Set(att.filter((a) => a.passed).map((a) => Number(a.quiz_id)));
+  return quizzes.filter((q) => !passedIds.has(Number(q.id)))
+    .map((q) => ({ id: q.id, title: q.title }));
+}
+
+// 6b.1/6b.3: examen final del curso (si existe) con estado y bloqueo.
+// `user` puede ser null (aunque requireStudent ya lo garantiza).
+async function buildExam(course, user) {
+  const examQ = unwrap(
+    await sb().from('quizzes')
+      .select('id, title, questions(count)')
+      .eq('course_id', course.id).eq('kind', 'exam')
+      .maybeSingle()
+  );
+  if (!examQ) return null;
+  const qCount = examQ.questions && examQ.questions[0] ? examQ.questions[0].count : 0;
+
+  let state = qCount ? 'pending' : 'preparing';
+  let passedExam = false;
+  let locked = false;
+  if (user) {
+    const att = unwrap(
+      await sb().from('attempts').select('status, passed')
+        .eq('user_id', user.id).eq('quiz_id', examQ.id)
+    );
+    passedExam = att.some((a) => a.status === 'graded' && a.passed);
+    if (!qCount) state = 'preparing';
+    else if (passedExam) state = 'approved';
+    else if (att.some((a) => a.status === 'in_progress')) state = 'running';
+    else if (att.some((a) => a.status === 'graded')) state = 'failed';
+    // Bypass admin + flag relaxable (§9.3).
+    if (qCount > 0 && !passedExam && user.role !== 'admin' &&
+        course.require_all_passed !== false) {
+      locked = (await missingModuleQuizzes(course, user.id)).length > 0;
+    }
+  }
+  return { id: examQ.id, title: examQ.title, state, locked };
 }
 
 // Preguntas listas para pintar: barajos deterministas por intento (§7.4).
@@ -307,10 +360,10 @@ router.get('/c/:slug', requireStudent, wrap(async (req, res) => {
   const course = await findCourse(req.params.slug);
   if (!(await courseOk(req, course))) return res.renderError(404, 'Curso no encontrado');
 
-  const { tree, stats, nextLesson } = await courseContext(req, course);
+  const { tree, stats, exam, nextLesson } = await courseContext(req, course);
 
   Object.assign(res.locals, {
-    course, tree, stats, nextLesson, currentLessonId: null,
+    course, tree, stats, exam, nextLesson, currentLessonId: null,
   });
 
   res.render('layout', {
@@ -344,7 +397,7 @@ router.get('/c/:slug/l/:lessonId', requireStudent, wrap(async (req, res) => {
     return res.renderError(404, 'Lección no encontrada');
   }
 
-  const { tree, stats, nextLesson } = await courseContext(req, course);
+  const { tree, stats, exam, nextLesson } = await courseContext(req, course);
   const idx = stats.flat.findIndex((l) => l.id === lesson.id);
   const next = idx >= 0 ? stats.flat[idx + 1] || null : null;
   // UX-017: lección anterior para no depender del sidebar/migajas.
@@ -362,7 +415,7 @@ router.get('/c/:slug/l/:lessonId', requireStudent, wrap(async (req, res) => {
   } : null;
 
   Object.assign(res.locals, {
-    course, tree, stats, nextLesson: next,
+    course, tree, stats, exam, nextLesson: next,
     currentLessonId: lesson.id,
     module: mod,
     lesson: { ...lesson, html: renderMarkdown(lesson.content) },
@@ -411,12 +464,52 @@ router.post('/c/:slug/l/:lessonId/complete', requireStudent, wrap(async (req, re
   res.redirect(`/c/${course.slug}/l/${lesson.id}`);
 }));
 
+// 6b.1/6b.4: acceso al examen final (§9.3). La URL bonita /c/:slug/exam
+// redirige a su quiz; si está bloqueado, muestra la vista con lo que falta.
+router.get('/c/:slug/exam', requireStudent, wrap(async (req, res) => {
+  const course = await findCourse(req.params.slug);
+  if (!(await courseOk(req, course))) return res.renderError(404, 'Curso no encontrado');
+
+  const exam = unwrap(
+    await sb().from('quizzes').select('*')
+      .eq('course_id', course.id).eq('kind', 'exam')
+      .maybeSingle()
+  );
+  if (!exam) return res.renderError(404, 'El examen final aún no está disponible.');
+
+  // 6b.1: bloqueo salvo admin, o si el curso relajó require_all_passed.
+  if (req.user.role !== 'admin' && course.require_all_passed !== false) {
+    const missing = await missingModuleQuizzes(course, req.user.id);
+    if (missing.length) {
+      const { tree, stats, exam: sidebarExam, nextLesson } = await courseContext(req, course);
+      Object.assign(res.locals, {
+        course, tree, stats, exam: sidebarExam, nextLesson, currentLessonId: null,
+        examBlock: { title: exam.title, pass_score: exam.pass_score },
+        missing,
+      });
+      return res.render('layout', {
+        view: 'student/exam',
+        title: `Examen final — ${course.title} — Aula`,
+        crumbs: `<a href="/c/${course.slug}">Curso</a> <span class="sep">/</span> <b>Examen final</b>`,
+      });
+    }
+  }
+  res.redirect(`/c/${course.slug}/quiz/${exam.id}`);
+}));
+
 // Quiz completo (§6.2). Mismo bloque que el embebido, en página propia.
 router.get('/c/:slug/quiz/:quizId', requireStudent, wrap(async (req, res) => {
   const course = await findCourse(req.params.slug);
   if (!(await courseOk(req, course))) return res.renderError(404, 'Curso no encontrado');
   const quiz = await findQuiz(course, req.params.quizId);
   if (!quiz) return res.renderError(404, 'Quiz no encontrado');
+
+  // 6b.1: el examen también se bloquea por URL directa (§9.3).
+  if (quiz.kind === 'exam' && req.user.role !== 'admin' &&
+      course.require_all_passed !== false) {
+    const missing = await missingModuleQuizzes(course, req.user.id);
+    if (missing.length) return res.redirect(`/c/${course.slug}/exam`);
+  }
 
   // §9.7: guard del servidor — quiz de módulo bloqueado hasta completar
   // TODAS sus lecciones. Excepción: quien ya tiene intentos graded del
@@ -448,7 +541,7 @@ router.get('/c/:slug/quiz/:quizId', requireStudent, wrap(async (req, res) => {
     }
   }
 
-  const { tree, stats, nextLesson } = await courseContext(req, course);
+  const { tree, stats, exam, nextLesson } = await courseContext(req, course);
   const qv = await quizView(req, course, quiz);
   Object.assign(qv, {
     action: `/c/${course.slug}/quiz/${quiz.id}/submit`,
@@ -462,7 +555,7 @@ router.get('/c/:slug/quiz/:quizId', requireStudent, wrap(async (req, res) => {
   }
 
   Object.assign(res.locals, {
-    course, tree, stats, nextLesson, currentLessonId: null,
+    course, tree, stats, exam, nextLesson, currentLessonId: null,
     quizBlock: qv, quiz: qv.quiz, attemptNo: qv.attemptNo, exhausted: qv.exhausted,
   });
 
@@ -521,7 +614,7 @@ router.get('/c/:slug/quiz/:quizId/result/:attemptId', requireStudent, wrap(async
     return res.redirect(`/c/${course.slug}/quiz/${quiz.id}`);
   }
 
-  const { tree, stats, nextLesson } = await courseContext(req, course);
+  const { tree, stats, exam, nextLesson } = await courseContext(req, course);
 
   const questions = await quizLib.getQuestions(quiz.id);
   const answers = unwrap(
@@ -579,7 +672,7 @@ router.get('/c/:slug/quiz/:quizId/result/:attemptId', requireStudent, wrap(async
   const pct = attempt.max_score ? Math.round((attempt.score * 100) / attempt.max_score) : 0;
 
   Object.assign(res.locals, {
-    course, tree, stats, nextLesson, currentLessonId: null,
+    course, tree, stats, exam, nextLesson, currentLessonId: null,
     quiz, attempt, items, attemptNo, pct,
     back: safeBack(req.query.back),
     quizUrl: `/c/${course.slug}/quiz/${quiz.id}`,
@@ -599,7 +692,7 @@ router.get('/c/:slug/results', requireStudent, wrap(async (req, res) => {
   const course = await findCourse(req.params.slug);
   if (!(await courseOk(req, course))) return res.renderError(404, 'Curso no encontrado');
 
-  const { tree, stats, nextLesson } = await courseContext(req, course);
+  const { tree, stats, exam, nextLesson } = await courseContext(req, course);
 
   const quizIds = (tree.map((m) => m.quiz && m.quiz.id).filter(Boolean));
   const rows = [];
@@ -629,7 +722,7 @@ router.get('/c/:slug/results', requireStudent, wrap(async (req, res) => {
   }
 
   Object.assign(res.locals, {
-    course, tree, stats, nextLesson, currentLessonId: null, rows,
+    course, tree, stats, exam, nextLesson, currentLessonId: null, rows,
   });
 
   res.render('layout', {
@@ -649,7 +742,7 @@ router.get('/c/:slug/ranking', requireStudent, wrap(async (req, res) => {
   const course = await findCourse(req.params.slug);
   if (!(await courseOk(req, course))) return res.renderError(404, 'Curso no encontrado');
 
-  const { tree, stats, nextLesson } = await courseContext(req, course);
+  const { tree, stats, exam, nextLesson } = await courseContext(req, course);
 
   const quizzes = unwrap(
     await sb().from('quizzes')
@@ -741,7 +834,7 @@ router.get('/c/:slug/ranking', requireStudent, wrap(async (req, res) => {
   }
 
   Object.assign(res.locals, {
-    course, tree, stats, nextLesson, currentLessonId: null,
+    course, tree, stats, exam, nextLesson, currentLessonId: null,
     rows, activeQuiz, quizzes,
     tab: activeQuiz ? 'quiz' : 'course',
   });

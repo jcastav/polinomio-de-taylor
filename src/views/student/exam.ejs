@@ -1,0 +1,27 @@
+<div class="eyebrow">
+  <span>Examen final · <%= course.title %></span>
+  <span class="meta">Nota mínima <%= examBlock.pass_score %>%</span>
+</div>
+
+<h1><%= examBlock.title %></h1>
+
+<div class="defbox">
+  <b>Examen bloqueado</b>
+  Aprueba todos los quizzes del módulo para poder rendir el examen final
+  (§9.3). Cuando los apruebes, el examen se desbloquea solo.
+</div>
+
+<h2>Quizzes que faltan por aprobar</h2>
+
+<ul class="adm-list">
+  <% missing.forEach((q) => { %>
+  <li>
+    <a href="/c/<%= course.slug %>/quiz/<%= q.id %>"><%= q.title %></a>
+    <span class="muted">Pendiente de aprobar</span>
+  </li>
+  <% }) %>
+</ul>
+
+<div class="result-actions">
+  <a class="btn" href="/c/<%= course.slug %>">Volver al curso</a>
+</div>
