@@ -66,6 +66,17 @@ plan (PLAN.md §9). **Sin cambios en el esquema de Supabase.** Fase 6a
 
 Tests: `tmp-check-d.ps1` (35 checks, fixtures tmp-test- con limpieza).
 
+### Fase 6b — examen final: bloqueo, temporizador y resultados (§9.3/§7.1/§9.5)
+
+| ID | Sev. | Corrección |
+|----|------|------------|
+| 6b.1 | ALTA | Bloqueo del examen hasta aprobar todos los quizzes del módulo (`courses.require_all_passed`, bypass admin): vista `student/exam.ejs` con la lista de quizzes faltantes y enlace directo a cada uno; el guard también cubre la URL directa del quiz del examen; flag `require_all_passed=false` relaja el bloqueo. |
+| 6b.2 | ALTA | Temporizador del quiz (`quizzes.time_limit_min`): topbar sticky `#examTimer` con cuenta atrás mm:ss (rojo ≤60s) y autoenvío al llegar a 0; el servidor manda: GET tardío auto-califica el intento abierto, y `save`/`submit` tras el deadline rechazan respuestas nuevas y van a resultados con `?timeout=1` (banner "Se acabó el tiempo"); el límite se calcula contra `attempts.started_at` y sobrevive a recargas. |
+| 6b.3 | MEDIA | Resultados del examen: botón "Ver ranking del curso" (ranking global, §9.5) + nota "El examen puntúa ×2"; sidebar con sección "Examen final" y estado (En preparación/Pendiente/En curso/Suspendido/Aprobado/"Examen completado"). |
+| 6b.4 | MEDIA | `GET /c/:slug/exam` redirige al quiz del examen (o a la vista de bloqueo/404 si no existe); enlace en el sidebar apunta a esta ruta. |
+
+Tests: `tmp-check-e.ps1` (31 checks, fixtures tmp-test-6b con 2 módulos + examen; limpieza al final). Regresión A/B/C/D verde.
+
 ---
 
 ## 2. Hallazgos pendientes

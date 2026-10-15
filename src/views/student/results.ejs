@@ -54,7 +54,12 @@
   <% if (canRetry) { %>
   <a class="btn btn-positive" href="<%= quizUrl %>">Reintentar</a>
   <% } %>
+  <% if (quiz.kind === 'exam') { %>
+  <a class="btn btn-dark" href="/c/<%= course.slug %>/ranking">Ver ranking del curso</a>
+  <span class="meta-note">El examen puntúa ×2 en el ranking</span>
+  <% } else { %>
   <a class="btn btn-dark" href="/c/<%= course.slug %>/ranking?quiz=<%= quiz.id %>">Ver ranking</a>
+  <% } %>
   <a class="btn" href="/c/<%= course.slug %>/results">Ver historial</a>
   <a class="btn" href="<%= back || `/c/${course.slug}` %>">Volver</a>
 </div>
