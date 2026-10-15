@@ -1,4 +1,7 @@
 <section class="quiz">
+  <% if (quizBlock.savedFlash) { %>
+  <p class="saved-flash" role="status">Borrador guardado · <%= quizBlock.savedFlash %></p>
+  <% } %>
   <form method="post" action="<%= quizBlock.action %>">
     <div class="quiz-head">
       <span class="t"><%= quizBlock.quiz.title %></span>

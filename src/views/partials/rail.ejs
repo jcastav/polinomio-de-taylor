@@ -13,16 +13,22 @@
 <div class="card">
   <h3>Siguiente</h3>
   <ul class="nextlist body">
+    <%
+      // UX-005: si no queda lección siguiente pero hay quiz sin aprobar,
+      // el CTA es el quiz (no "todas las lecciones completadas").
+      const pendingQuiz = (typeof tree !== 'undefined' && tree)
+        ? tree.find((m) => m.quiz && !m.quiz.passed) : null;
+    %>
     <% if (nextLesson) { %>
     <li><span class="lbl">Lección</span> <a href="/c/<%= course.slug %>/l/<%= nextLesson.id %>"><%= nextLesson.title %></a></li>
+    <% } else if (pendingQuiz) { %>
+    <li><span class="lbl">Quiz</span> <a href="/c/<%= course.slug %>/quiz/<%= pendingQuiz.quiz.id %>">Aprobar: <%= pendingQuiz.quiz.title %> →</a></li>
     <% } else if (stats.total > 0) { %>
     <li><span class="lbl">Estado</span> Todas las lecciones completadas</li>
     <% } else { %>
     <li><span class="lbl">Estado</span> Sin lecciones todavía</li>
     <% } %>
-    <% const pendingQuiz = (typeof tree !== 'undefined' && tree)
-      ? tree.find((m) => m.quiz && !m.quiz.passed) : null; %>
-    <% if (pendingQuiz) { %>
+    <% if (nextLesson && pendingQuiz) { %>
     <li><span class="lbl">Pendiente</span> <a href="/c/<%= course.slug %>/quiz/<%= pendingQuiz.quiz.id %>"><%= pendingQuiz.quiz.title %></a></li>
     <% } %>
   </ul>
@@ -31,9 +37,9 @@
 
 <% if (user && user.role === 'admin') { %>
 <div class="card">
-  <h3>Panel admin</h3>
+  <h3>Panel de administración</h3>
   <div class="body">
-    <p>Como administradora puedes editar lecciones, preguntas y el orden de los módulos.</p>
+    <p>Edita lecciones, preguntas y el orden de los módulos desde el panel.</p>
     <a class="btn btn-positive" style="width:100%; justify-content:center;" href="/admin">Abrir editor</a>
   </div>
 </div>

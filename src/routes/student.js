@@ -299,7 +299,7 @@ router.get('/c/:slug', requireStudent, wrap(async (req, res) => {
   res.render('layout', {
     view: 'student/course',
     title: `${course.title} — Aula`,
-    crumbs: `Curso <span class="sep">/</span> <b>${esc(course.title)}</b>`,
+    crumbs: `<a href="/c/${course.slug}">Curso</a> <span class="sep">/</span> <b>${esc(course.title)}</b>`,
   });
 }));
 
@@ -330,6 +330,8 @@ router.get('/c/:slug/l/:lessonId', requireStudent, wrap(async (req, res) => {
   const { tree, stats, nextLesson } = await courseContext(req, course);
   const idx = stats.flat.findIndex((l) => l.id === lesson.id);
   const next = idx >= 0 ? stats.flat[idx + 1] || null : null;
+  // UX-017: lección anterior para no depender del sidebar/migajas.
+  const prev = idx > 0 ? stats.flat[idx - 1] : null;
   const completed = idx >= 0 ? stats.flat[idx].done : false;
 
   // CTA "Avanzar al quiz" en la última lección del módulo (A3).
@@ -348,6 +350,7 @@ router.get('/c/:slug/l/:lessonId', requireStudent, wrap(async (req, res) => {
     module: mod,
     lesson: { ...lesson, html: renderMarkdown(lesson.content) },
     completed,
+    prev,
     next,
     isLastLesson,
     moduleInfo,
@@ -356,7 +359,7 @@ router.get('/c/:slug/l/:lessonId', requireStudent, wrap(async (req, res) => {
   res.render('layout', {
     view: 'student/lesson',
     title: `${lesson.title} — Aula`,
-    crumbs: `Curso <span class="sep">/</span> ${esc(mod.title)} ` +
+    crumbs: `<a href="/c/${course.slug}">Curso</a> <span class="sep">/</span> ${esc(mod.title)} ` +
             `<span class="sep">/</span> <b>${esc(lesson.title)}</b>`,
   });
 }));
@@ -404,6 +407,11 @@ router.get('/c/:slug/quiz/:quizId', requireStudent, wrap(async (req, res) => {
     backUrl: null,
   });
 
+  // UX-003: confirmación visible tras guardar borrador (?saved=1).
+  if (req.query.saved === '1') {
+    qv.savedFlash = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  }
+
   Object.assign(res.locals, {
     course, tree, stats, nextLesson, currentLessonId: null,
     quizBlock: qv, quiz: qv.quiz, attemptNo: qv.attemptNo, exhausted: qv.exhausted,
@@ -412,7 +420,7 @@ router.get('/c/:slug/quiz/:quizId', requireStudent, wrap(async (req, res) => {
   res.render('layout', {
     view: 'student/quiz',
     title: `${quiz.title} — Aula`,
-    crumbs: `Curso <span class="sep">/</span> <b>${esc(quiz.title)}</b>`,
+    crumbs: `<a href="/c/${course.slug}">Curso</a> <span class="sep">/</span> <b>${esc(quiz.title)}</b>`,
   });
 }));
 
@@ -429,7 +437,10 @@ router.post('/c/:slug/quiz/:quizId/save', requireStudent, wrap(async (req, res) 
 
   const questions = await quizLib.getQuestions(quiz.id);
   await quizLib.saveAnswers(attempt.id, questions, req.body);
-  res.redirect(safeBack(req.body.back) || quizUrl);
+  // UX-003: ?saved=1 para pintar el banner "Borrador guardado · hh:mm".
+  const target = safeBack(req.body.back) || quizUrl;
+  const sep = target.includes('?') ? '&' : '?';
+  res.redirect(`${target}${sep}saved=1`);
 }));
 
 // Envío y calificación del quiz completo (§6.2, §7.1).
@@ -529,7 +540,7 @@ router.get('/c/:slug/quiz/:quizId/result/:attemptId', requireStudent, wrap(async
   res.render('layout', {
     view: 'student/results',
     title: `Resultados — ${quiz.title} — Aula`,
-    crumbs: `Curso <span class="sep">/</span> ${esc(quiz.title)} ` +
+    crumbs: `<a href="/c/${course.slug}">Curso</a> <span class="sep">/</span> ${esc(quiz.title)} ` +
             `<span class="sep">/</span> <b>Resultados</b>`,
   });
 }));
@@ -575,7 +586,7 @@ router.get('/c/:slug/results', requireStudent, wrap(async (req, res) => {
   res.render('layout', {
     view: 'student/history',
     title: `Resultados — ${course.title} — Aula`,
-    crumbs: `Curso <span class="sep">/</span> <b>Resultados</b>`,
+    crumbs: `<a href="/c/${course.slug}">Curso</a> <span class="sep">/</span> <b>Resultados</b>`,
   });
 }));
 
@@ -689,7 +700,7 @@ router.get('/c/:slug/ranking', requireStudent, wrap(async (req, res) => {
   res.render('layout', {
     view: 'student/ranking',
     title: `Ranking — ${course.title} — Aula`,
-    crumbs: `Curso <span class="sep">/</span> <b>Ranking</b>`,
+    crumbs: `<a href="/c/${course.slug}">Curso</a> <span class="sep">/</span> <b>Ranking</b>`,
   });
 }));
 

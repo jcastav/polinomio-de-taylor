@@ -32,6 +32,12 @@
 }
 .btn-ghost:hover{ background:#2a2a2a; }
 
+/* UX-014: foco visible global (teclado) en botones, enlaces, etc. */
+:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+
 .hamburger{
   display:none;
   width:32px; height:32px; padding:0;
@@ -626,6 +632,11 @@ body.modal-open .modal.is-open{ display:block; }
 .mod li a.qstate-failed   .st{ color:var(--accent); }
 .mod li a.qstate-approved .st{ color:var(--accent-2); }
 .mod li a.qstate-failed{ color:var(--ink); }
+/* UX-004: mismos estados en la tabla de módulos de la portada. */
+.dense a.qstate-pending{ color:var(--muted); }
+.dense a.qstate-running{ color:#a06e14; }
+.dense a.qstate-failed{ color:var(--accent); }
+.dense a.qstate-approved{ color:var(--accent-2); }
 
 .quiz-cta{
   display:flex; flex-direction:column; gap:8px;
@@ -664,3 +675,18 @@ table.dense tr.me td{ background:var(--hl); font-weight:600; }
   margin:8px 0 10px;
 }
 .error-page .btn{ margin-top:14px; }
+
+/* ---------- UX-003: banner de borrador guardado ---------- */
+.saved-flash{
+  display:block; margin:0 0 14px; padding:9px 11px;
+  background:#eaf3ee; border:1px solid var(--accent-2); color:var(--accent-2);
+  font:600 12px/1.4 Tahoma, Verdana, sans-serif; letter-spacing:.04em;
+}
+
+/* ---------- UX-015: targets táctiles >= 44px ---------- */
+@media (pointer:coarse){
+  .btn, .btn-sm{ min-height:44px; }
+  .ord-btns button{ min-width:44px; min-height:44px; }
+  .mod ul li a{ min-height:44px; }
+  .modline-actions .btn, .adm-item-actions .btn{ min-height:44px; }
+}

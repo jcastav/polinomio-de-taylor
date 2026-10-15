@@ -120,3 +120,11 @@
   .brand{ letter-spacing:.08em; }
   .btn{ padding:6px 8px; }
 }
+
+/* UX-019: "Curso" en las migajas es un enlace al curso. */
+.crumbs a{
+  color:#f3efe6; font-weight:400;
+  text-decoration:underline; text-decoration-color:#5a5448;
+  text-underline-offset:2px;
+}
+.crumbs a:hover{ text-decoration-color:#f3efe6; }

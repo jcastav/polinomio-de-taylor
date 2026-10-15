@@ -45,8 +45,8 @@
   </div>
   <div class="form-row">
     <label for="s-pass">Contraseña temporal (mínimo 8)</label>
-    <input id="s-pass" type="text" name="password" maxlength="200" required
-           autocomplete="off" placeholder="clave1234">
+    <input id="s-pass" type="password" name="password" maxlength="200" required
+           autocomplete="new-password">
     <% if (errors.password) { %><span class="field-error"><%= errors.password %></span><% } %>
   </div>
   <button class="btn btn-dark" type="submit">Crear estudiante</button>

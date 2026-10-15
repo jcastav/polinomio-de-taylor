@@ -9,9 +9,11 @@
 <h2>Módulos</h2>
 
 <% if (tree.length) { %>
+<% const QICON = { pending: '○', running: '◐', failed: '✗', approved: '✓' };
+   const QWORD = { pending: 'Pendiente', running: 'En curso', failed: 'Suspendido', approved: 'Aprobado' }; %>
 <div class="table-scroll"><table class="dense">
   <thead>
-    <tr><th>Módulo</th><th>Lecciones</th><th>Progreso</th></tr>
+    <tr><th>Módulo</th><th>Lecciones</th><th>Progreso</th><th>Quiz</th></tr>
   </thead>
   <tbody>
     <% tree.forEach((mod) => { %>
@@ -19,6 +21,15 @@
       <td><%= mod.title %></td>
       <td><%= mod.lessons.length %></td>
       <td><%= mod.lessons.filter((l) => l.done).length %> / <%= mod.lessons.length %></td>
+      <td>
+        <% if (mod.quiz) { %>
+        <a class="qstate qstate-<%= mod.quiz.state %>" href="/c/<%= course.slug %>/quiz/<%= mod.quiz.id %>">
+          <span aria-hidden="true"><%= QICON[mod.quiz.state] %></span>
+          <span class="sr"><%= QWORD[mod.quiz.state] %>.</span>
+          <%= mod.quiz.title %>
+        </a>
+        <% } else { %>—<% } %>
+      </td>
     </tr>
     <% }) %>
   </tbody>

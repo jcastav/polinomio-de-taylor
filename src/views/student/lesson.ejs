@@ -29,6 +29,10 @@
 <% } %>
 
 <div class="lesson-foot">
+  <% if (prev) { %>
+  <a class="btn" href="/c/<%= course.slug %>/l/<%= prev.id %>">← Lección anterior</a>
+  <% } %>
+
   <% if (!completed) { %>
   <form method="post" action="/c/<%= course.slug %>/l/<%= lesson.id %>/complete">
     <button class="btn btn-positive" type="submit">Marcar como completada</button>
