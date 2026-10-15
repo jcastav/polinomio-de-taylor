@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
+<title>Mockup — Editor WYSIWYG (Aula)</title>
+<style>
+  :root{
+    --paper:#f3efe6; --panel:#fbf9f4; --ink:#171717; --muted:#5f5a50;
+    --line:#cdc5b4; --line-soft:#e3ddce; --accent:#8a2f1b; --accent-2:#2c4a3e;
+    --hl:#efe3c6; --topbar:#1b1b1b; --gold:#c9a15a;
+  }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--paper); color:var(--ink);
+    font:13px/1.5 Tahoma, Verdana, "Segoe UI", sans-serif;
+    -webkit-text-size-adjust:100%;
+  }
+
+  /* ---------- topbar (contexto del mockup) ---------- */
+  .topbar{
+    position:sticky; top:0; z-index:40;
+    display:flex; align-items:center; gap:10px; height:44px; padding:0 10px;
+    background:var(--topbar); color:#f3efe6;
+    border-bottom:2px solid var(--accent);
+  }
+  .brand{ font:700 13px/1 Tahoma, Verdana, sans-serif; letter-spacing:.14em; text-transform:uppercase; }
+  .brand span{ color:var(--gold); }
+  .crumbs{ flex:1; min-width:0; font-size:12px; color:#b9b2a4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .crumbs b{ color:#f3efe6; font-weight:400; }
+
+  /* ---------- nota del mockup (no es UI final) ---------- */
+  .mock-note{
+    background:var(--hl); border-bottom:1px solid var(--line);
+    padding:7px 12px; font-size:11px; color:var(--muted); line-height:1.45;
+  }
+  .mock-note b{ color:var(--accent); letter-spacing:.08em; text-transform:uppercase; font-size:10px; }
+
+  /* ---------- editor ---------- */
+  .shell{ max-width:760px; margin:0 auto; padding:0 0 80px; }
+
+  .toolbar-desktop{ display:none; }
+
+  .editor{
+    background:var(--paper);
+    min-height:62vh;
+    padding:14px 14px 24px;
+    outline:none;
+    line-height:1.55;
+  }
+  .editor:focus{ box-shadow:inset 0 0 0 1px var(--line-soft); }
+
+  .editor h1{ font:700 20px/1.25 Tahoma, Verdana, sans-serif; margin:14px 0 8px; }
+  .editor h2{ font:700 16px/1.3 Tahoma, Verdana, sans-serif; margin:14px 0 6px; }
+  .editor h3{ font:700 13.5px/1.35 Tahoma, Verdana, sans-serif; margin:12px 0 5px; text-transform:uppercase; letter-spacing:.06em; }
+  .editor p{ margin:0 0 8px; }
+  .editor ul,.editor ol{ margin:0 0 8px; padding-left:22px; }
+  .editor li{ margin:2px 0; }
+  .editor blockquote{
+    margin:8px 0; padding:7px 11px;
+    border-left:3px solid var(--accent); background:var(--panel);
+    color:var(--muted); font-style:italic;
+  }
+  .editor pre{
+    margin:8px 0; padding:9px 11px; overflow:auto;
+    background:var(--topbar); color:#e9e4d8;
+    font:12px/1.45 Consolas, Menlo, monospace;
+    border:1px solid var(--topbar);
+  }
+  .editor img{ max-width:100%; display:block; margin:8px 0; border:1px solid var(--line); }
+  .editor a{ color:var(--accent); }
+
+  /* blot YouTube (placeholder en el editor; el estudiante ve iframe) */
+  .yt{
+    position:relative; aspect-ratio:16/9; margin:10px 0;
+    border:1px solid var(--line); background:#141414;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .yt svg{ width:44px; height:44px; opacity:.85; }
+  .yt .yt-id{
+    position:absolute; left:8px; bottom:6px;
+    font:700 9px/1 Tahoma, sans-serif; letter-spacing:.1em; text-transform:uppercase;
+    color:#b9b2a4;
+  }
+
+  /* ---------- burbuja móvil ---------- */
+  .bubble{
+    position:fixed; z-index:60; display:none;
+    background:var(--topbar); border:1px solid #3a3a3a;
+    padding:2px; gap:2px;
+  }
+  .bubble.show{ display:flex; }
+  .bubble button{
+    min-width:40px; height:40px; border:0; background:transparent;
+    color:#f3efe6; font:700 13px/1 Tahoma, sans-serif; cursor:pointer;
+  }
+  .bubble button:active{ background:#333; }
+  .bubble button.b-italic{ font-style:italic; font-family:Georgia, serif; }
+  .bubble button.b-code{ font:700 11px/1 Consolas, monospace; }
+
+  /* ---------- barra inferior móvil ---------- */
+  .bottombar{
+    position:fixed; left:0; right:0; bottom:0; z-index:50;
+    display:flex; align-items:center; gap:6px;
+    height:48px; padding:0 8px 0 12px;
+    background:var(--panel); border-top:1px solid var(--line);
+    transition:bottom .12s ease-out;
+  }
+  .bottombar select{
+    height:34px; border:1px solid var(--line); background:var(--paper);
+    color:var(--ink); font:600 12px/1 Tahoma, sans-serif; padding:0 6px;
+  }
+  .bb-right{ display:flex; gap:2px; margin-left:auto; }
+  .bb-right button{
+    min-width:44px; min-height:44px; border:0; background:transparent;
+    color:var(--ink); cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .bb-right button:active{ background:var(--hl); }
+  .bb-right svg{ width:20px; height:20px; }
+
+  /* iconos (trazo, currentColor) */
+  .ico{ fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+
+  /* ---------- desktop >820px ---------- */
+  @media (min-width:821px){
+    .shell{ padding:0 16px 40px; }
+    .bottombar{ display:none; }
+    .bubble{ display:none !important; }
+
+    .toolbar-desktop{
+      display:flex; flex-wrap:wrap; align-items:center; gap:2px;
+      position:sticky; top:44px; z-index:30;
+      background:var(--panel);
+      border:1px solid var(--line); border-top:0;
+      padding:4px 6px;
+    }
+    .toolbar-desktop button{
+      height:30px; min-width:30px; padding:0 7px;
+      border:1px solid transparent; background:transparent;
+      color:var(--ink); font:700 12px/1 Tahoma, sans-serif; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; gap:4px;
+    }
+    .toolbar-desktop button:hover{ background:var(--line-soft); }
+    .toolbar-desktop button.on{ background:var(--hl); border-color:var(--line); }
+    .toolbar-desktop .sep{ width:1px; height:18px; background:var(--line); margin:0 4px; }
+    .toolbar-desktop svg{ width:16px; height:16px; }
+
+    .editor{ border:1px solid var(--line); border-top:0; padding:18px 22px 30px; min-height:70vh; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">Aula<span>·</span>v1</div>
+  <nav class="crumbs">Panel <span>/</span> <b>Editor de lección (mockup)</b></nav>
+</header>
+
+<div class="mock-note">
+  <b>Mockup — no es la UI final.</b>
+  Desktop (&gt;820px): toolbar sticky arriba. Móvil (≤820px): sin toolbar arriba — burbuja al seleccionar texto + barra inferior fija.
+  Probar con DevTools a 375px; en iOS Safari la barra debe subir sobre el teclado (visualViewport).
+</div>
+
+<div class="shell">
+
+  <!-- toolbar desktop (sticky) -->
+  <div class="toolbar-desktop" id="deskToolbar">
+    <button type="button" data-block="h1">H1</button>
+    <button type="button" data-block="h2">H2</button>
+    <button type="button" data-block="h3">H3</button>
+    <span class="sep"></span>
+    <button type="button" data-cmd="bold" title="Negrita">B</button>
+    <button type="button" data-cmd="italic" title="Cursiva"><i>I</i></button>
+    <button type="button" data-cmd="underline" title="Subrayado"><u>U</u></button>
+    <span class="sep"></span>
+    <button type="button" data-cmd="insertUnorderedList" title="Lista">
+      <svg viewBox="0 0 16 16"><g class="ico"><circle cx="2.5" cy="4" r="1"/><circle cx="2.5" cy="8" r="1"/><circle cx="2.5" cy="12" r="1"/><path d="M6 4h8M6 8h8M6 12h8"/></g></svg>
+    </button>
+    <button type="button" data-cmd="insertOrderedList" title="Lista numerada">
+      <svg viewBox="0 0 16 16"><g class="ico"><path d="M6 4h8M6 8h8M6 12h8"/><path d="M1.5 2.5h1v3M1.2 9.2h2M1.2 11.2h2v1.2h-2v1.2h2" stroke-width="1.1"/></g></svg>
+    </button>
+    <button type="button" data-block="blockquote" title="Cita">❝</button>
+    <button type="button" data-block="pre" title="Bloque de código">&lt;/&gt;</button>
+    <span class="sep"></span>
+    <button type="button" data-act="link" title="Enlace">
+      <svg viewBox="0 0 16 16"><g class="ico"><path d="M6.5 9.5l3-3"/><path d="M5 8L3.5 9.5a2.47 2.47 0 003.5 3.5L8.5 11.5"/><path d="M11 8l1.5-1.5a2.47 2.47 0 00-3.5-3.5L7.5 4.5"/></g></svg>
+    </button>
+    <button type="button" data-act="image" title="Imagen">
+      <svg viewBox="0 0 16 16"><g class="ico"><rect x="1.5" y="2.5" width="13" height="11"/><circle cx="5.5" cy="6" r="1.2"/><path d="M2.5 11.5l3.5-3 2.5 2.5 2-2 3 3"/></g></svg>
+    </button>
+    <button type="button" data-act="video" title="Video (YouTube)">
+      <svg viewBox="0 0 16 16"><g class="ico"><rect x="1.5" y="3" width="13" height="10"/><path d="M6.8 6l3.4 2-3.4 2z"/></g></svg>
+    </button>
+  </div>
+
+  <!-- contenido editable -->
+  <div class="editor" id="editor" contenteditable="true" spellcheck="true">
+    <h1>Taylor: lección de ejemplo</h1>
+    <p>Selecciona este texto en móvil para ver la <b>burbuja</b> de formato (B, I, link, H2, code).</p>
+    <h2>2.1. Desarrollo</h2>
+    <ul>
+      <li>Elemento de lista con <i>cursiva</i>.</li>
+      <li>Segundo elemento.</li>
+    </ul>
+    <blockquote>Cita de bloque con el estilo papel/óxido del mockup.</blockquote>
+    <pre>fn = lambda x: sum(...)</pre>
+    <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='640' height='200'><rect width='640' height='200' fill='%23efe3c6'/><text x='320' y='105' font-family='Tahoma' font-size='14' fill='%235f5a50' text-anchor='middle'>imagen de la lección</text></svg>" alt="Imagen de la lección">
+    <div class="yt" data-youtube="dQw4w9WgXcQ">
+      <svg viewBox="0 0 16 16"><g class="ico" stroke="#f3efe6"><rect x="1.5" y="3" width="13" height="10"/><path d="M6.8 6l3.4 2-3.4 2z"/></g></svg>
+      <span class="yt-id">youtube · dQw4w9WgXcQ</span>
+    </div>
+    <p>Párrafo final de la demo.</p>
+  </div>
+</div>
+
+<!-- burbuja móvil -->
+<div class="bubble" id="bubble" role="toolbar" aria-label="Formato">
+  <button type="button" data-cmd="bold">B</button>
+  <button type="button" class="b-italic" data-cmd="italic">I</button>
+  <button type="button" data-act="link">
+    <svg viewBox="0 0 16 16" width="16" height="16"><g class="ico" stroke="#f3efe6"><path d="M6.5 9.5l3-3"/><path d="M5 8L3.5 9.5a2.47 2.47 0 003.5 3.5L8.5 11.5"/><path d="M11 8l1.5-1.5a2.47 2.47 0 00-3.5-3.5L7.5 4.5"/></g></svg>
+  </button>
+  <button type="button" data-block="h2">H2</button>
+  <button type="button" class="b-code" data-block="pre">&lt;/&gt;</button>
+</div>
+
+<!-- barra inferior móvil -->
+<div class="bottombar" id="bottombar">
+  <select id="blockSel" aria-label="Tipo de bloque">
+    <option value="p">Párrafo</option>
+    <option value="h1">H1</option>
+    <option value="h2">H2</option>
+    <option value="h3">H3</option>
+  </select>
+  <div class="bb-right">
+    <button type="button" data-cmd="insertUnorderedList" aria-label="Lista">
+      <svg viewBox="0 0 16 16"><g class="ico"><circle cx="2.5" cy="4" r="1"/><circle cx="2.5" cy="8" r="1"/><circle cx="2.5" cy="12" r="1"/><path d="M6 4h8M6 8h8M6 12h8"/></g></svg>
+    </button>
+    <button type="button" data-cmd="insertOrderedList" aria-label="Lista numerada">
+      <svg viewBox="0 0 16 16"><g class="ico"><path d="M6 4h8M6 8h8M6 12h8"/><path d="M1.5 2.5h1v3M1.2 9.2h2M1.2 11.2h2v1.2h-2v1.2h2" stroke-width="1.1"/></g></svg>
+    </button>
+    <button type="button" data-block="blockquote" aria-label="Cita">❝</button>
+    <button type="button" data-act="image" aria-label="Imagen">
+      <svg viewBox="0 0 16 16"><g class="ico"><rect x="1.5" y="2.5" width="13" height="11"/><circle cx="5.5" cy="6" r="1.2"/><path d="M2.5 11.5l3.5-3 2.5 2.5 2-2 3 3"/></g></svg>
+    </button>
+    <button type="button" data-act="video" aria-label="Video (YouTube)">
+      <svg viewBox="0 0 16 16"><g class="ico"><rect x="1.5" y="3" width="13" height="10"/><path d="M6.8 6l3.4 2-3.4 2z"/></g></svg>
+    </button>
+  </div>
+</div>
+
+<input type="file" id="fileImage" accept="image/*" hidden>
+
+<script>
+(function () {
+  var editor = document.getElementById('editor');
+  var bubble = document.getElementById('bubble');
+  var bottombar = document.getElementById('bottombar');
+  var blockSel = document.getElementById('blockSel');
+  var fileImage = document.getElementById('fileImage');
+  var deskToolbar = document.getElementById('deskToolbar');
+
+  function isMobile() { return window.matchMedia('(max-width: 820px)').matches; }
+
+  function exec(cmd, val) {
+    editor.focus();
+    document.execCommand(cmd, false, val || null);
+    hideBubble();
+  }
+
+  function insertHtml(html) {
+    editor.focus();
+    document.execCommand('insertHTML', false, html);
+    hideBubble();
+  }
+
+  function parseYouTubeId(url) {
+    var m = /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{6,})/.exec(url || '');
+    return m ? m[1] : null;
+  }
+
+  function doLink() {
+    var sel = document.getSelection();
+    if (!sel || sel.isCollapsed) { alert('Selecciona el texto del enlace primero.'); return; }
+    var url = prompt('URL del enlace:');
+    if (url) exec('createLink', url);
+  }
+
+  function doImage() { fileImage.click(); }
+
+  function doVideo() {
+    var url = prompt('URL de YouTube:');
+    var id = parseYouTubeId(url);
+    if (!id) { if (url) alert('No se reconoció la URL de YouTube.'); return; }
+    insertHtml('<div class="yt" data-youtube="' + id + '">' +
+      '<svg viewBox="0 0 16 16"><g class="ico" stroke="#f3efe6"><rect x="1.5" y="3" width="13" height="10"/><path d="M6.8 6l3.4 2-3.4 2z"/></g></svg>' +
+      '<span class="yt-id">youtube · ' + id + '</span></div><p><br></p>');
+  }
+
+  fileImage.addEventListener('change', function () {
+    var f = fileImage.files && fileImage.files[0];
+    if (!f) return;
+    if (!/^image\//.test(f.type)) { alert('Solo imágenes.'); fileImage.value = ''; return; }
+    if (f.size > 10 * 1024 * 1024) { alert('Máximo 10MB.'); fileImage.value = ''; return; }
+    var src = URL.createObjectURL(f);
+    insertHtml('<img src="' + src + '" alt="' + (f.name || 'Imagen') + '"><p><br></p>');
+    fileImage.value = '';
+  });
+
+  function handleAction(el) {
+    var act = el.getAttribute('data-act');
+    if (act === 'link') doLink();
+    else if (act === 'image') doImage();
+    else if (act === 'video') doVideo();
+  }
+
+  // botones: conservar la selección al pulsar (preventDefault en mousedown)
+  function bindChrome(root) {
+    root.addEventListener('mousedown', function (e) {
+      if (e.target.closest('button, select')) e.preventDefault();
+    });
+    root.addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn || !root.contains(btn)) return;
+      var cmd = btn.getAttribute('data-cmd');
+      var block = btn.getAttribute('data-block');
+      if (cmd) exec(cmd);
+      else if (block) exec('formatBlock', '<' + block + '>');
+      else handleAction(btn);
+      refreshDesktopStates();
+    });
+  }
+  bindChrome(deskToolbar);
+  bindChrome(bubble);
+  bindChrome(bottombar);
+
+  blockSel.addEventListener('change', function () {
+    exec('formatBlock', '<' + blockSel.value + '>');
+  });
+
+  // ---------- burbuja móvil sobre la selección ----------
+  function hideBubble() { bubble.classList.remove('show'); }
+
+  function showBubbleAt(rect) {
+    bubble.classList.add('show');
+    var bw = bubble.offsetWidth, bh = bubble.offsetHeight;
+    var left = rect.left + rect.width / 2 - bw / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - bw - 8));
+    var top = rect.top - bh - 10;
+    if (top < 54) top = rect.bottom + 10; // si no cabe arriba, abajo
+    bubble.style.left = left + 'px';
+    bubble.style.top = top + 'px';
+  }
+
+  document.addEventListener('selectionchange', function () {
+    if (!isMobile()) { hideBubble(); return; }
+    var sel = document.getSelection();
+    if (!sel || sel.isCollapsed || !sel.rangeCount) { hideBubble(); return; }
+    var range = sel.getRangeAt(0);
+    if (!editor.contains(range.commonAncestorContainer)) { hideBubble(); return; }
+    showBubbleAt(range.getBoundingClientRect());
+  });
+
+  // ---------- barra inferior vs teclado virtual (visualViewport) ----------
+  function fitBottomBar() {
+    var vv = window.visualViewport;
+    if (!vv) return;
+    var overlap = window.innerHeight - vv.height - vv.offsetTop;
+    bottombar.style.bottom = Math.max(0, overlap) + 'px';
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', fitBottomBar);
+    window.visualViewport.addEventListener('scroll', fitBottomBar);
+  }
+  window.addEventListener('resize', fitBottomBar);
+  window.addEventListener('orientationchange', fitBottomBar);
+  fitBottomBar();
+
+  // ---------- estados del toolbar desktop ----------
+  function refreshDesktopStates() {
+    if (isMobile()) return;
+    ['bold', 'italic', 'underline', 'insertUnorderedList', 'insertOrderedList'].forEach(function (c) {
+      var btn = deskToolbar.querySelector('[data-cmd="' + c + '"]');
+      if (!btn) return;
+      var on = false;
+      try { on = document.queryCommandState(c); } catch (e) {}
+      btn.classList.toggle('on', on);
+    });
+  }
+  document.addEventListener('selectionchange', refreshDesktopStates);
+})();
+</script>
+</body>
+</html>
