@@ -3,3 +3,4 @@ node_modules/
 *.log
 PLAN.md
 design/reference.html
+tmp-*
