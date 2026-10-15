@@ -60,18 +60,13 @@ iniciada.**
 
 No abordados en esta ronda (acordado con la revisión):
 
-| ID | Estado |
-|----|--------|
-| UX-002 | pendiente |
-| UX-007 | pendiente |
-| UX-009 | pendiente |
-| UX-012 | pendiente |
-| UX-018 | pendiente |
-
-> Nota: las descripciones de estos 5 hallazgos se encuentran en la
-> conversación de la auditoría original, no en el repositorio. Recuperarlas
-> del historial de chat antes de abordarlos (aquí se conservan los IDs para
-> que no se pierdan).
+| ID | Sev. | Problema | Propuesta |
+|----|------|----------|-----------|
+| UX-002 | MEDIA | Sesión expirada en un POST redirige a `/login` perdiendo el formulario; tras login cae en `/` y no vuelve al formulario. | Mensaje "Tu sesión expiró" + `returnTo` tras login. |
+| UX-007 | MEDIA | El admin no puede resetear la contraseña de un estudiante existente. | Formulario "Cambiar contraseña" en el detalle del estudiante (`/admin/students/:id`). |
+| UX-009 | BAJA | Botones ▲▼ y acordeón del sidebar sin ARIA. | `aria-label` en los botones y `aria-expanded` en el acordeón. |
+| UX-012 | BAJA | Acciones admin sin confirmación de éxito. | Flash `?saved=1` → banner efímero (mecanismo ya usado en UX-003). |
+| UX-018 | BAJA | Un quiz sin preguntas es enviable (0/0 → "Suspendido"). | Marcarlo "en preparación" o bloquear el envío. |
 
 ---
 
