@@ -89,20 +89,35 @@ function endSession(req) {
   return new Promise((resolve) => req.session.destroy(() => resolve()));
 }
 
+// UX-002: solo rutas internas (misma origin); nada de //host ni /login.
+function safeReturnTo(raw) {
+  if (typeof raw !== 'string' || !raw) return null;
+  if (!raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/login')) return null;
+  return raw.slice(0, 500);
+}
+
+// UX-002: al tocar una ruta protegida sin sesión, volver a ella tras login.
+function loginRedirectUrl(req) {
+  const back = safeReturnTo(req.originalUrl);
+  return back
+    ? `/login?expired=1&returnTo=${encodeURIComponent(back)}`
+    : '/login';
+}
+
 function requireAuth(req, res, next) {
-  if (!req.user) return res.redirect('/login');
+  if (!req.user) return res.redirect(loginRedirectUrl(req));
   next();
 }
 
 function requireAdmin(req, res, next) {
-  if (!req.user) return res.redirect('/login');
+  if (!req.user) return res.redirect(loginRedirectUrl(req));
   if (req.user.role !== 'admin') return res.status(403).send('Prohibido');
   next();
 }
 
 // student y admin (el admin puede ver todo) — §5.2 del plan.
 function requireStudent(req, res, next) {
-  if (!req.user) return res.redirect('/login');
+  if (!req.user) return res.redirect(loginRedirectUrl(req));
   next();
 }
 
@@ -113,6 +128,7 @@ module.exports = {
   loadUser,
   startSession,
   endSession,
+  safeReturnTo,
   requireAuth,
   requireAdmin,
   requireStudent,

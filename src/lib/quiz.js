@@ -192,10 +192,16 @@ async function countUsedAttempts(userId, quizId) {
   return rows.length;
 }
 
-// Devuelve el intento abierto o crea uno; null si se acabaron los intentos.
+// Devuelve el intento abierto o crea uno; null si se acabaron los intentos
+// o si el quiz está vacío (UX-018: sin preguntas no se envía nada).
 async function ensureAttempt(user, quiz) {
   const open = await getOpenAttempt(user.id, quiz.id);
   if (open) return open;
+
+  const qRows = unwrap(
+    await sb().from('questions').select('id').eq('quiz_id', quiz.id).limit(1)
+  );
+  if (!qRows.length) return null;
 
   const used = await countUsedAttempts(user.id, quiz.id);
   if (used >= (quiz.max_attempts || 3)) return null;

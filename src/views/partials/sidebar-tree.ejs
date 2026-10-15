@@ -1,6 +1,6 @@
 <div class="side-head">Contenido del curso</div>
-<% const QICON = { pending: '○', running: '◐', failed: '✗', approved: '✓' };
-   const QWORD = { pending: 'Pendiente', running: 'En curso', failed: 'Suspendido', approved: 'Aprobado' }; %>
+<% const QICON = { preparing: '✎', pending: '○', running: '◐', failed: '✗', approved: '✓' };
+   const QWORD = { preparing: 'En preparación', pending: 'Pendiente', running: 'En curso', failed: 'Suspendido', approved: 'Aprobado' }; %>
 
 <% if (typeof tree !== 'undefined' && tree && tree.length) { %>
 <div class="side-progress">
@@ -10,8 +10,8 @@
 
 <% tree.forEach((mod) => { %>
 <div class="mod">
-  <button type="button"><%= mod.title %> <span class="caret">▼</span></button>
-  <ul>
+  <button type="button" aria-expanded="true" aria-controls="modlist-<%= mod.id %>"><%= mod.title %> <span class="caret">▼</span></button>
+  <ul id="modlist-<%= mod.id %>">
     <% mod.lessons.forEach((l) => { %>
     <% const esActual = currentLessonId === l.id; %>
     <li>

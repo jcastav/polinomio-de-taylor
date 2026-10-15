@@ -1,4 +1,5 @@
 <%- include('../partials/admin-nav', { nav: 'students' }) %>
+<%- include('../partials/saved-flash') %>
 
 <div class="eyebrow">
   <span>Estudiante</span>
@@ -6,6 +7,22 @@
 </div>
 
 <h1><%= student.name %></h1>
+
+<h2>Cambiar contraseña</h2>
+
+<% if (pwFlash) { %>
+<p class="saved-flash" role="status">Contraseña actualizada. Guárdala ahora — no se volverá a mostrar: <code><%= pwFlash %></code></p>
+<% } %>
+
+<form class="panel-box" method="post" action="/admin/students/<%= student.id %>/password">
+  <div class="form-row">
+    <label for="new-pass">Nueva contraseña (mínimo 8)</label>
+    <input id="new-pass" type="password" name="password" maxlength="200" required
+           autocomplete="new-password">
+    <% if (errors._) { %><span class="field-error"><%= errors._ %></span><% } %>
+  </div>
+  <button class="btn btn-dark" type="submit">Cambiar contraseña</button>
+</form>
 
 <div class="stat-cards">
   <div class="panel-box stat-card"><span>Lecciones vistas</span><b><%= lessonsDone %></b></div>

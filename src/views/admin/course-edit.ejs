@@ -1,4 +1,5 @@
 <%- include('../partials/admin-nav', { nav: 'courses' }) %>
+<%- include('../partials/saved-flash') %>
 
 <div class="editor-top">
   <a class="btn btn-ghost" href="/admin/courses">← Volver a cursos</a>
@@ -64,10 +65,10 @@
     <span class="modline-actions">
       <button class="btn btn-sm" type="button" data-focus-inline>Editar</button>
       <form method="post" action="/admin/modules/<%= m.id %>/reorder">
-        <button class="btn btn-sm" type="submit" name="dir" value="up" <%= mi === 0 ? 'disabled' : '' %>>▲</button>
+        <button class="btn btn-sm" type="submit" name="dir" value="up" aria-label="Subir módulo <%= m.title %>" <%= mi === 0 ? 'disabled' : '' %>>▲</button>
       </form>
       <form method="post" action="/admin/modules/<%= m.id %>/reorder">
-        <button class="btn btn-sm" type="submit" name="dir" value="down" <%= mi === tree.length - 1 ? 'disabled' : '' %>>▼</button>
+        <button class="btn btn-sm" type="submit" name="dir" value="down" aria-label="Bajar módulo <%= m.title %>" <%= mi === tree.length - 1 ? 'disabled' : '' %>>▼</button>
       </form>
       <form method="post" action="/admin/modules/<%= m.id %>/delete"
             onsubmit="return confirm('¿Eliminar el módulo y sus lecciones?')">

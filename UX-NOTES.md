@@ -1,8 +1,8 @@
 # UX-NOTES — ronda de correcciones de UX
 
 Bitácora de la ronda de correcciones UX aplicada sobre las fases 1–5 del
-plan (PLAN.md §9). **Sin cambios en el esquema de Supabase. Fase 6 no
-iniciada.**
+plan (PLAN.md §9). **Sin cambios en el esquema de Supabase.** Fase 6a
+(pendientes UX) aplicada; 6b/6c pendientes.
 
 ---
 
@@ -53,6 +53,18 @@ iniciada.**
 | UX-015 | BAJA | `@media (pointer:coarse)`: `min-height: 44px` en botones (`.btn`, `.btn-sm`, ▲▼ del árbol, botones de ordenar) y en filas del árbol lateral. |
 | UX-017 | BAJA | "← Lección anterior" en `.lesson-foot` (variable `prev` en la ruta de lección). |
 | UX-019 | BAJA | Migajas: "Curso" es un enlace al curso (`<a href="/c/:slug">Curso</a>`) en las 6 vistas con migajas de estudiante + estilo `.crumbs a`. |
+
+### Fase 6a — ux: pendientes UX-002/007/009/012/018
+
+| ID | Sev. | Corrección |
+|----|------|------------|
+| UX-002 | MEDIA | Rutas protegidas sin sesión → `/login?expired=1&returnTo=…` con aviso "Tu sesión expiró"; el login (GET y POST) preserva `returnTo` (campo oculto) y redirige a él tras entrar, validando que sea ruta interna (`safeReturnTo`: empieza con `/`, no `//`, no `/login`). |
+| UX-007 | MEDIA | `POST /admin/students/:id/password` + formulario "Cambiar contraseña" en el detalle del estudiante; la nueva clave se muestra **una vez** (flash de sesión con `req.session.save()` explícito) y no se repite en el siguiente GET. |
+| UX-009 | BAJA | `aria-expanded`/`aria-controls` en el acordeón del sidebar (toggle en `nav.js`) y `aria-label` en los ▲▼ de reorder de módulos. |
+| UX-012 | BAJA | Flash `?saved=1&flash=…` (parcial `partials/saved-flash.ejs`) en: crear/guardar/publicar curso, añadir/renombrar módulo, añadir/guardar lección, crear/guardar quiz, crear estudiante, reset de contraseña. |
+| UX-018 | BAJA | Quiz sin preguntas: estado "En preparación" (`✎`, `qstate-preparing`) en sidebar y portada; la vista muestra "En preparación" sin formulario; `ensureAttempt` no crea intentos en quizzes vacíos (ni 0/0 "Suspendido"). |
+
+Tests: `tmp-check-d.ps1` (35 checks, fixtures tmp-test- con limpieza).
 
 ---
 

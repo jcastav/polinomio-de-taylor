@@ -127,6 +127,11 @@ const studentSchema = z.object({
   password: z.string().min(8, 'Mínimo 8 caracteres').max(200),
 });
 
+// UX-007: reset de contraseña de un estudiante existente.
+const passwordSchema = z.object({
+  password: z.string().min(8, 'Mínimo 8 caracteres').max(200),
+});
+
 const feedbackSchema = z.object({
   kind: z.enum(['text', 'video', 'link', 'image'],
     { errorMap: () => ({ message: 'Tipo no válido' }) }),
@@ -206,6 +211,16 @@ async function courseQuiz(courseId) {
 function renderAdmin(res, view, title, crumbs, extra = {}) {
   Object.assign(res.locals, extra);
   res.render('layout', { view, title, crumbs, bare: true, wide: true });
+}
+
+// UX-012: banner de éxito (?saved=1&flash=…) en acciones admin.
+function savedQuery(msg) {
+  return `?saved=1&flash=${encodeURIComponent(msg)}`;
+}
+
+function savedFlash(req, fallback) {
+  if (req.query.saved !== '1') return null;
+  return String(req.query.flash || fallback || 'Guardado correctamente').slice(0, 120);
 }
 
 // Construye el payload JSON de una pregunta desde el formulario (§4.1).
@@ -302,6 +317,7 @@ router.get('/courses', requireAdmin, wrap(async (req, res) => {
       courses: await coursesViewData(),
       errors: {},
       values: {},
+      savedFlash: savedFlash(req, 'Curso guardado'),
     });
 }));
 
@@ -327,7 +343,8 @@ router.post('/courses', requireAdmin, wrap(async (req, res) => {
   const created = unwrap(
     await sb().from('courses').insert(check.data).select('id').single()
   );
-  res.redirect(`/admin/courses/${created.id}`);
+  // UX-012: al editor del curso creado con banner.
+  res.redirect(`/admin/courses/${created.id}${savedQuery('Curso creado')}`);
 }));
 
 router.get('/courses/:id', requireAdmin, wrap(async (req, res) => {
@@ -341,6 +358,7 @@ router.get('/courses/:id', requireAdmin, wrap(async (req, res) => {
   renderAdmin(res, 'admin/course-edit', `${course.title} — Aula`,
     `Panel <span class="sep">/</span> Cursos <span class="sep">/</span> <b>${esc(course.title)}</b>`, {
       course, tree, exam, errors: {}, values: {},
+      savedFlash: savedFlash(req, 'Guardado correctamente'),
     });
 }));
 
@@ -374,8 +392,8 @@ router.post('/courses/:id', requireAdmin, wrap(async (req, res) => {
       .update({ ...check.data, published: !!req.body.published })
       .eq('id', course.id)
   );
-  // B3 (excepción): guardar metadata de curso → lista de cursos.
-  res.redirect('/admin/courses');
+  // B3 (excepción): guardar metadata de curso → lista de cursos (UX-012: banner).
+  res.redirect(`/admin/courses${savedQuery('Curso guardado')}`);
 }));
 
 router.post('/courses/:id/delete', requireAdmin, wrap(async (req, res) => {
@@ -389,7 +407,7 @@ router.post('/courses/:id/publish', requireAdmin, wrap(async (req, res) => {
   const course = await findCourse(req.params.id);
   if (!course) return res.renderError(404, 'Curso no encontrado');
   unwrap(await sb().from('courses').update({ published: !course.published }).eq('id', course.id));
-  res.redirect(`/admin/courses/${course.id}`);
+  res.redirect(`/admin/courses/${course.id}${savedQuery(course.published ? 'Curso despublicado' : 'Curso publicado')}`);
 }));
 
 // El árbol vive en la edición del curso (§8.2).
@@ -408,7 +426,7 @@ router.post('/courses/:id/modules', requireAdmin, wrap(async (req, res) => {
       position: await nextPosition('modules', 'course_id', course.id),
     }));
   }
-  res.redirect(`/admin/courses/${course.id}`);
+  res.redirect(`/admin/courses/${course.id}${savedQuery('Módulo añadido')}`);
 }));
 
 // Crear lección en un módulo (añadido a §6.3).
@@ -427,7 +445,7 @@ router.post('/modules/:id/lessons', requireAdmin, wrap(async (req, res) => {
     );
   }
   // B3: tras crear se vuelve al árbol del curso (donde está la lección).
-  res.redirect(`/admin/courses/${mod.course_id}`);
+  res.redirect(`/admin/courses/${mod.course_id}${savedQuery('Lección añadida')}`);
 }));
 
 router.post('/modules/:id', requireAdmin, wrap(async (req, res) => {
@@ -437,7 +455,7 @@ router.post('/modules/:id', requireAdmin, wrap(async (req, res) => {
   if (check.ok) {
     unwrap(await sb().from('modules').update({ title: check.data.title }).eq('id', mod.id));
   }
-  res.redirect(`/admin/courses/${mod.course_id}`);
+  res.redirect(`/admin/courses/${mod.course_id}${savedQuery('Módulo guardado')}`);
 }));
 
 router.post('/modules/:id/delete', requireAdmin, wrap(async (req, res) => {
@@ -503,8 +521,8 @@ router.post('/lessons/:id', requireAdmin, wrap(async (req, res) => {
   }
 
   unwrap(await sb().from('lessons').update(check.data).eq('id', lesson.id));
-  // B3: tras guardar se vuelve al árbol del curso.
-  res.redirect(`/admin/courses/${course.id}`);
+  // B3: tras guardar se vuelve al árbol del curso (UX-012: banner).
+  res.redirect(`/admin/courses/${course.id}${savedQuery('Lección guardada')}`);
 }));
 
 // Preview markdown del editor (JSON; añadido a §6.3).
@@ -538,7 +556,7 @@ router.post('/courses/:id/quizzes', requireAdmin, wrap(async (req, res) => {
   const existing = unwrap(
     await (moduleId ? base.eq('module_id', moduleId) : base.is('module_id', null)).maybeSingle()
   );
-  if (existing) return res.redirect(`/admin/quizzes/${existing.id}`);
+  if (existing) return res.redirect(`/admin/quizzes/${existing.id}${savedQuery('Quiz creado')}`);
 
   const created = unwrap(
     await sb().from('quizzes').insert({
@@ -550,7 +568,7 @@ router.post('/courses/:id/quizzes', requireAdmin, wrap(async (req, res) => {
       pass_score: 70,
     }).select('id').single()
   );
-  res.redirect(`/admin/quizzes/${created.id}`);
+  res.redirect(`/admin/quizzes/${created.id}${savedQuery('Quiz creado')}`);
 }));
 
 router.get('/quizzes/:id', requireAdmin, wrap(async (req, res) => {
@@ -578,6 +596,7 @@ router.get('/quizzes/:id', requireAdmin, wrap(async (req, res) => {
     `<span class="sep">/</span> <b>${esc(quiz.title)}</b>`, {
       quiz, course, questions, feedback, TYPE_NAMES,
       errors: {}, values: {}, errorMsg: req.query.error || null,
+      savedFlash: savedFlash(req, 'Quiz creado'),
     });
 }));
 
@@ -615,8 +634,8 @@ router.post('/quizzes/:id', requireAdmin, wrap(async (req, res) => {
     pass_score: check.data.pass_score,
     shuffle: !!req.body.shuffle,
   }).eq('id', quiz.id));
-  // B3: tras guardar se vuelve al árbol del curso.
-  res.redirect(`/admin/courses/${quiz.course_id}`);
+  // B3: tras guardar se vuelve al árbol del curso (UX-012: banner).
+  res.redirect(`/admin/courses/${quiz.course_id}${savedQuery('Quiz guardado')}`);
 }));
 
 // Q2/UX-006: eliminar un quiz individual (antes solo se podía borrando
@@ -794,6 +813,7 @@ router.get('/students', requireAdmin, wrap(async (req, res) => {
   renderAdmin(res, 'admin/students', 'Estudiantes — Aula',
     'Panel <span class="sep">/</span> <b>Estudiantes</b>', {
       students, errors: {}, values: {},
+      savedFlash: savedFlash(req, 'Estudiante creado'),
     });
 }));
 
@@ -829,7 +849,7 @@ router.post('/students', requireAdmin, wrap(async (req, res) => {
     password_hash: await hashPassword(check.data.password),
     role: 'student',
   }));
-  res.redirect('/admin/students');
+  res.redirect(`/admin/students${savedQuery('Estudiante creado')}`);
 }));
 
 router.get('/students/:id', requireAdmin, wrap(async (req, res) => {
@@ -851,6 +871,12 @@ router.get('/students/:id', requireAdmin, wrap(async (req, res) => {
       .order('id', { ascending: false })
   );
 
+  // UX-007: la nueva contraseña se muestra una sola vez (flash de sesión);
+  // con resave:false hay que guardar el store explícitamente al vaciarlo.
+  const pwFlash = req.session.pwFlash || null;
+  req.session.pwFlash = null;
+  await new Promise((resolve) => req.session.save(() => resolve()));
+
   renderAdmin(res, 'admin/student', `${student.name} — Aula`,
     `Panel <span class="sep">/</span> Estudiantes <span class="sep">/</span> <b>${esc(student.name)}</b>`, {
       student,
@@ -860,7 +886,32 @@ router.get('/students/:id', requireAdmin, wrap(async (req, res) => {
         fecha: formatFecha(a.finished_at || a.started_at),
         quizTitle: a.quizzes ? a.quizzes.title : 'Quiz',
       })),
+      errors: { _: req.query.error || null },
+      values: {},
+      savedFlash: savedFlash(req, 'Contraseña actualizada'),
+      pwFlash,
     });
+}));
+
+// UX-007: el admin genera una nueva contraseña para un estudiante existente.
+router.post('/students/:id/password', requireAdmin, wrap(async (req, res) => {
+  const student = unwrap(
+    await sb().from('users').select('id, name').eq('id', req.params.id).maybeSingle()
+  );
+  if (!student) return res.renderError(404, 'Estudiante no encontrado');
+
+  const check = validate(passwordSchema, { password: req.body.password || '' });
+  if (!check.ok) {
+    const msg = Object.values(check.errors)[0] || 'Revisa el formulario';
+    return res.redirect(`/admin/students/${student.id}?error=${encodeURIComponent(msg)}`);
+  }
+
+  unwrap(await sb().from('users')
+    .update({ password_hash: await hashPassword(check.data.password) })
+    .eq('id', student.id));
+  // Se pinta una vez en el siguiente GET y se borra; no viaja por la URL.
+  req.session.pwFlash = check.data.password;
+  res.redirect(`/admin/students/${student.id}${savedQuery('Contraseña actualizada')}`);
 }));
 
 // ---------- detalle de intento (§8.5) ----------

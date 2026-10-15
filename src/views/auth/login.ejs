@@ -8,11 +8,16 @@
   El administrador entra con su correo; los estudiantes, con su nombre.
 </p>
 
+<% if (expiredNotice) { %>
+  <div class="defbox" role="status"><b>Sesión</b><%= expiredNotice %></div>
+<% } %>
+
 <% if (errors._) { %>
   <div class="defbox"><b>Error</b><%= errors._ %></div>
 <% } %>
 
 <form class="authform" method="post" action="/login">
+  <% if (returnTo) { %><input type="hidden" name="returnTo" value="<%= returnTo %>"><% } %>
   <label for="identity">Correo o nombre</label>
   <input id="identity" name="identity" type="text" autocomplete="username"
          maxlength="200" autofocus value="<%= values.identity || '' %>">

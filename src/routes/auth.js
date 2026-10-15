@@ -2,7 +2,7 @@ const express = require('express');
 const { z } = require('zod');
 const { sb, unwrap } = require('../db/client');
 const {
-  hashPassword, verifyPassword, startSession, endSession,
+  hashPassword, verifyPassword, startSession, endSession, safeReturnTo,
 } = require('../lib/auth');
 const { validate } = require('../lib/validate');
 
@@ -33,21 +33,31 @@ function authView(req, res, view, status, extra = {}) {
     bare: true,
     errors: {},
     values: {},
+    returnTo: null,
+    expiredNotice: null,
     ...extra,
   });
 }
 
 router.get('/login', (req, res) => {
   if (req.user) return res.redirect('/');
-  authView(req, res, 'login', 200);
+  // UX-002: ?expired=1 + returnTo cuando se cayó la sesión en una ruta protegida.
+  const returnTo = safeReturnTo(req.query.returnTo);
+  authView(req, res, 'login', 200, {
+    returnTo,
+    expiredNotice: req.query.expired === '1'
+      ? 'Tu sesión expiró. Inicia sesión para continuar.' : null,
+  });
 });
 
 router.post('/login', wrap(async (req, res) => {
+  const returnTo = safeReturnTo(req.body.returnTo);
   const check = validate(loginSchema, req.body);
   if (!check.ok) {
     return authView(req, res, 'login', 400, {
       errors: check.errors,
       values: { identity: req.body.identity || '' },
+      returnTo,
     });
   }
 
@@ -64,11 +74,13 @@ router.post('/login', wrap(async (req, res) => {
     return authView(req, res, 'login', 401, {
       errors: { _: 'Credenciales incorrectas' },
       values: { identity },
+      returnTo,
     });
   }
 
   await startSession(req, user.id);
-  res.redirect('/');
+  // UX-002: volver al formulario original si el returnTo es interno.
+  res.redirect(returnTo || '/');
 }));
 
 router.post('/logout', wrap(async (req, res) => {

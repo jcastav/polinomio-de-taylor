@@ -94,7 +94,7 @@ async function buildTree(course, userId) {
       .in('module_id', mods.map((m) => m.id))
       .then((r) => unwrap(r)),
     sb().from('quizzes')
-      .select('id, module_id, title, kind')
+      .select('id, module_id, title, kind, questions(count)')
       .eq('course_id', course.id)
       .in('module_id', mods.map((m) => m.id))
       .then((r) => unwrap(r)),
@@ -130,8 +130,11 @@ async function buildTree(course, userId) {
     if (qz) {
       const forQ = att.filter((a) => Number(a.quiz_id) === Number(qz.id));
       const passed = forQ.some((a) => a.status === 'graded' && a.passed);
+      // UX-018: quiz sin preguntas → estado "preparing" (envío bloqueado).
+      const qCount = qz.questions && qz.questions[0] ? qz.questions[0].count : 0;
       let state = 'pending';
-      if (passed) state = 'approved';
+      if (!qCount) state = 'preparing';
+      else if (passed) state = 'approved';
       else if (forQ.some((a) => a.status === 'in_progress')) state = 'running';
       else if (forQ.some((a) => a.status === 'graded')) state = 'failed';
       // §9.7: quiz de módulo bloqueado hasta completar sus lecciones;
@@ -256,9 +259,17 @@ function formatFecha(iso) {
 
 // Datos del quiz para su vista (crea intento si hay cupo, §7.3).
 async function quizView(req, course, quiz) {
+  const questions = await quizLib.getQuestions(quiz.id);
+  // UX-018: sin preguntas no se crea intento ni se envía nada.
+  if (!questions.length) {
+    const usedQ = await quizLib.countUsedAttempts(req.user.id, quiz.id);
+    return {
+      quiz, attempt: null, used: usedQ, attemptNo: usedQ + 1,
+      renderedQs: [], exhausted: false, preparing: true,
+    };
+  }
   const attempt = await quizLib.ensureAttempt(req.user, quiz);
   const used = await quizLib.countUsedAttempts(req.user.id, quiz.id);
-  const questions = await quizLib.getQuestions(quiz.id);
   const saved = attempt ? await quizLib.loadSavedResponses(attempt.id) : new Map();
   return {
     quiz,
@@ -267,6 +278,7 @@ async function quizView(req, course, quiz) {
     attemptNo: attempt ? used + 1 : used,
     renderedQs: attempt ? renderQuestions(quiz, attempt, questions, saved) : [],
     exhausted: !attempt,
+    preparing: false,
   };
 }
 

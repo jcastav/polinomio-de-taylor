@@ -632,11 +632,14 @@ body.modal-open .modal.is-open{ display:block; }
 .mod li a.qstate-failed   .st{ color:var(--accent); }
 .mod li a.qstate-approved .st{ color:var(--accent-2); }
 .mod li a.qstate-failed{ color:var(--ink); }
+.mod li a.qstate-preparing .st{ color:var(--muted); }
+.mod li a.qstate-preparing{ color:var(--muted); }
 /* UX-004: mismos estados en la tabla de módulos de la portada. */
 .dense a.qstate-pending{ color:var(--muted); }
 .dense a.qstate-running{ color:#a06e14; }
 .dense a.qstate-failed{ color:var(--accent); }
 .dense a.qstate-approved{ color:var(--accent-2); }
+.dense a.qstate-preparing{ color:var(--muted); }
 
 .quiz-cta{
   display:flex; flex-direction:column; gap:8px;

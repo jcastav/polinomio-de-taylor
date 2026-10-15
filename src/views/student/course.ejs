@@ -9,8 +9,8 @@
 <h2>Módulos</h2>
 
 <% if (tree.length) { %>
-<% const QICON = { pending: '○', running: '◐', failed: '✗', approved: '✓' };
-   const QWORD = { pending: 'Pendiente', running: 'En curso', failed: 'Suspendido', approved: 'Aprobado' }; %>
+<% const QICON = { preparing: '✎', pending: '○', running: '◐', failed: '✗', approved: '✓' };
+   const QWORD = { preparing: 'En preparación', pending: 'Pendiente', running: 'En curso', failed: 'Suspendido', approved: 'Aprobado' }; %>
 <div class="table-scroll"><table class="dense">
   <thead>
     <tr><th>Módulo</th><th>Lecciones</th><th>Progreso</th><th>Quiz</th></tr>

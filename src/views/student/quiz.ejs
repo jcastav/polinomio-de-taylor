@@ -5,7 +5,16 @@
 
 <h1><%= quiz.title %></h1>
 
-<% if (exhausted) { %>
+<% if (quizBlock.preparing) { %>
+<div class="defbox">
+  <b>En preparación</b>
+  Este quiz todavía no tiene preguntas; el docente sigue preparándolo.
+  Vuelve más tarde.
+</div>
+<div class="result-actions">
+  <a class="btn" href="/c/<%= course.slug %>">Volver al curso</a>
+</div>
+<% } else if (exhausted) { %>
 <div class="defbox">
   <b>Intentos agotados</b>
   Has usado tus <%= quiz.max_attempts %> intentos en este quiz. Revisa tus notas en el historial.
