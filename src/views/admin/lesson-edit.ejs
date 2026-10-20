@@ -19,50 +19,59 @@
     <% if (errors.title) { %><span class="field-error"><%= errors.title %></span><% } %>
   </div>
 
-  <% if (editorMode === 'wysiwyg') { %>
   <div class="form-row">
-    <label for="lessonEditor">Contenido</label>
-    <div class="ed-wrap">
-      <div id="editorToolbar" class="ql-toolbar ed-toolbar" role="toolbar" aria-label="Formato">
-        <select class="ql-header" id="edHeader" aria-label="Título">
-          <option value="1">H1</option>
-          <option value="2">H2</option>
-          <option value="3">H3</option>
-          <option selected value="">Texto</option>
-        </select>
-        <button class="ql-bold" aria-label="Negritas"></button>
-        <button class="ql-italic" aria-label="Cursiva"></button>
-        <button class="ql-underline" aria-label="Subrayado"></button>
-        <button class="ql-strike" aria-label="Tachado"></button>
-        <button class="ql-list" value="bullet" aria-label="Lista"></button>
-        <button class="ql-list" value="ordered" aria-label="Lista numerada"></button>
-        <button class="ql-blockquote" aria-label="Cita"></button>
-        <button class="ql-code-block" aria-label="Código"></button>
-        <button class="ql-link" aria-label="Enlace"></button>
-        <button class="ql-image" aria-label="Imagen"></button>
-        <button class="ql-formula" aria-label="Fórmula">ƒx</button>
-        <button data-ed="youtube" aria-label="Video de YouTube">▶</button>
-        <button class="ql-clean" aria-label="Limpiar formato"></button>
-      </div>
-      <div id="lessonEditor"></div>
+    <label>Contenido</label>
+    <div class="ed-tabs" role="tablist" aria-label="Modo de edición">
+      <button type="button" role="tab" data-tabbtn="wysiwyg"
+              class="<%= initialTab === 'wysiwyg' ? 'active' : '' %>"
+              aria-selected="<%= initialTab === 'wysiwyg' %>">WYSIWYG</button>
+      <button type="button" role="tab" data-tabbtn="html"
+              class="<%= initialTab === 'html' ? 'active' : '' %>"
+              aria-selected="<%= initialTab === 'html' %>">HTML</button>
+      <button type="button" role="tab" data-tabbtn="latex"
+              class="<%= initialTab === 'latex' ? 'active' : '' %>"
+              aria-selected="<%= initialTab === 'latex' %>">LaTeX</button>
     </div>
+
+    <div class="ed-host" data-tab="<%= initialTab %>">
+      <div class="ed-wrap" id="edPaneWysiwyg"<%= initialTab === 'wysiwyg' ? '' : ' hidden' %>>
+        <div id="editorToolbar" class="ql-toolbar ed-toolbar" role="toolbar" aria-label="Formato">
+          <select class="ql-header" id="edHeader" aria-label="Título">
+            <option value="1">H1</option>
+            <option value="2">H2</option>
+            <option value="3">H3</option>
+            <option selected value="">Texto</option>
+          </select>
+          <button class="ql-bold" aria-label="Negritas"></button>
+          <button class="ql-italic" aria-label="Cursiva"></button>
+          <button class="ql-underline" aria-label="Subrayado"></button>
+          <button class="ql-strike" aria-label="Tachado"></button>
+          <button class="ql-list" value="bullet" aria-label="Lista"></button>
+          <button class="ql-list" value="ordered" aria-label="Lista numerada"></button>
+          <button class="ql-blockquote" aria-label="Cita"></button>
+          <button class="ql-code-block" aria-label="Código"></button>
+          <button class="ql-link" aria-label="Enlace"></button>
+          <button class="ql-image" aria-label="Imagen"></button>
+          <button class="ql-formula" aria-label="Fórmula">ƒx</button>
+          <button data-ed="youtube" aria-label="Video de YouTube">▶</button>
+          <button class="ql-clean" aria-label="Limpiar formato"></button>
+        </div>
+        <div id="lessonEditor"></div>
+      </div>
+
+      <div class="ed-wrap ed-cm-wrap" id="edPaneHtml"<%= initialTab === 'html' ? '' : ' hidden' %>>
+        <div id="cmHtml"></div>
+      </div>
+
+      <div class="ed-wrap ed-cm-wrap" id="edPaneLatex"<%= initialTab === 'latex' ? '' : ' hidden' %>>
+        <div id="cmLatex"></div>
+      </div>
+    </div>
+
     <textarea id="l-content" name="content" class="ed-bridge" tabindex="-1" aria-hidden="true"><%= values.content !== undefined ? values.content : lesson.content %></textarea>
     <% if (errors.content) { %><span class="field-error"><%= errors.content %></span><% } %>
-    <span class="field-hint">Las fórmulas se insertan con ƒx (MathLive) y se guardan como LaTeX. Las imágenes se suben a la plataforma. El contenido avanzado (&lt;script&gt;, &lt;style&gt;, LaTeX crudo) se edita en las pestañas HTML/LaTeX.</span>
+    <span class="field-hint">WYSIWYG para usuarios sin experiencia; HTML y LaTeX para contenido técnico. Al cambiar de pestaña el contenido se convierte: lo no convertible se conserva intacto como bloque LaTeX crudo (<code>data-latex-raw</code>).</span>
   </div>
-  <% } else { %>
-  <div class="form-row">
-    <label for="l-content">Contenido (<%= editorMode === 'raw-legacy' ? 'markdown (legacy)' : 'HTML / LaTeX crudo' %>)</label>
-    <% if (editorMode === 'raw-advanced') { %>
-    <span class="field-hint">Este contenido tiene &lt;script&gt;, &lt;style&gt; o bloques LaTeX sin convertir: el modo WYSIWYG no puede conservarlos, así que se edita como texto por ahora (pestañas HTML/LaTeX en el siguiente paso).</span>
-    <% } else { %>
-    <span class="field-hint">Markdown guardado antes del editor nuevo. Se conserva tal cual; al guardarlo puedes sustituirlo por HTML del editor.</span>
-    <% } %>
-    <textarea id="l-content" name="content" rows="16" class="code-area"
-              spellcheck="false"><%= values.content !== undefined ? values.content : lesson.content %></textarea>
-    <% if (errors.content) { %><span class="field-error"><%= errors.content %></span><% } %>
-  </div>
-  <% } %>
 
   <div class="result-actions">
     <button class="btn btn-dark" type="submit">Guardar</button>
@@ -85,7 +94,6 @@
   </form>
 </div>
 
-<% if (editorMode === 'wysiwyg') { %>
 <script type="application/json" id="lessonSeed"><%- editorSeed %></script>
 
 <div class="ed-bottombar" id="edBottombar" aria-label="Formato">
@@ -148,7 +156,16 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/xml/xml.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/stex/stex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/edit/closetag.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/edit/matchbrackets.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mathlive@0.111.1/dist/mathlive.min.js"></script>
+<script src="/js/lesson-convert.js"></script>
 <script src="/js/lesson-editor.js"></script>
-<% } %>

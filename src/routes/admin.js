@@ -221,11 +221,13 @@ function savedQuery(msg) {
   return `?saved=1&flash=${encodeURIComponent(msg)}`;
 }
 
-// Hito 2: modo de edición de la lección. El WYSIWYG (Quill) conserva lo que
-// sus blots saben serializar; contenido con <script>/<style>/LaTeX crudo se
-// edita como texto hasta las pestañas HTML/LaTeX (Hito 3). Markdown legacy
-// se conserva como texto para no romperlo (la migración es el Hito 6).
+// Hito 2/3: editor de lección con pestañas WYSIWYG (Quill) / HTML / LaTeX
+// (CodeMirror 5). El contenido avanzado (script/style/LaTeX crudo) y el
+// markdown legacy abren en la pestaña HTML (edición cruda sin pérdida);
+// la migración completa es el Hito 6.
+const CM_BASE = 'https://cdn.jsdelivr.net/npm/codemirror@5.65.16';
 const EDITOR_HEAD = [
+  `<link rel="stylesheet" href="${CM_BASE}/lib/codemirror.min.css">`,
   '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">',
   '<link rel="stylesheet" href="/css/lesson-editor.css">',
 ].join('\n');
@@ -233,12 +235,13 @@ const EDITOR_HEAD = [
 function editorLocals(content) {
   const text = String(content || '');
   const advanced = /<script[\s>]|<style[\s>]|data-latex-raw/i.test(text);
-  const editorMode = advanced
-    ? 'raw-advanced'
-    : (!text.trim() || isHtmlContent(text) ? 'wysiwyg' : 'raw-legacy');
-  // JSON embebido para sembrar Quill; \u003c evita cerrar el </script>.
-  const editorSeed = JSON.stringify({ content: text }).replace(/</g, '\\u003c');
-  return { editorMode, editorSeed };
+  const initialTab = (advanced || (text.trim() && !isHtmlContent(text)))
+    ? 'html'
+    : 'wysiwyg';
+  // JSON embebido para sembrar el editor; \u003c evita cerrar el </script>.
+  const editorSeed = JSON.stringify({ content: text, tab: initialTab })
+    .replace(/</g, '\\u003c');
+  return { initialTab, editorSeed };
 }
 
 function savedFlash(req, fallback) {
@@ -523,7 +526,7 @@ router.get('/lessons/:id', requireAdmin, wrap(async (req, res) => {
       lesson, module: mod, course, errors: {}, values: {},
       previewToken: newFrameToken(),
       ...ed,
-      ...(ed.editorMode === 'wysiwyg' ? { extraHead: EDITOR_HEAD } : {}),
+      extraHead: EDITOR_HEAD,
     });
 }));
 
@@ -545,7 +548,7 @@ router.post('/lessons/:id', requireAdmin, wrap(async (req, res) => {
         lesson, module: mod, course, errors: check.errors, values: req.body,
         previewToken: newFrameToken(),
         ...ed,
-        ...(ed.editorMode === 'wysiwyg' ? { extraHead: EDITOR_HEAD } : {}),
+        extraHead: EDITOR_HEAD,
       });
   }
 

@@ -103,10 +103,107 @@
   if (seed.content) quill.clipboard.dangerouslyPasteHTML(0, seed.content);
 
   function getHtml() { return quill.root.innerHTML; }
-  window.AULA_LESSON_EDITOR = { getHtml: getHtml, quill: quill };
+
+  // ---------- CodeMirror (pestañas HTML / LaTeX) ----------
+  var cmHtml = null;
+  var cmLatex = null;
+  if (window.CodeMirror) {
+    if (document.getElementById('cmHtml')) {
+      cmHtml = CodeMirror(document.getElementById('cmHtml'), {
+        mode: 'text/html',
+        lineNumbers: true,
+        lineWrapping: true,
+        autoCloseTags: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+      });
+    }
+    if (document.getElementById('cmLatex')) {
+      cmLatex = CodeMirror(document.getElementById('cmLatex'), {
+        mode: 'stex',
+        lineNumbers: true,
+        lineWrapping: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+      });
+    }
+  }
+
+  // ---------- pestañas: el documento canónico es HTML ----------
+  var activeTab = seed.tab || 'wysiwyg';
+  var host = document.querySelector('.ed-host');
+
+  function currentHtml() {
+    if (activeTab === 'html' && cmHtml) return cmHtml.getValue();
+    if (activeTab === 'latex' && cmLatex && window.AULA_CONVERT) {
+      return AULA_CONVERT.latexToHtml(cmLatex.getValue()).html;
+    }
+    return getHtml();
+  }
+
+  function hasAdvancedBits(html) {
+    return /<script[\s>]|<style[\s>]|data-latex-raw/i.test(html || '');
+  }
+
+  function switchTab(tab) {
+    if (tab === activeTab) return;
+    var html = currentHtml();
+    if (tab === 'wysiwyg') {
+      if (hasAdvancedBits(html)) {
+        var go = confirm(
+          'El modo WYSIWYG no conserva <script>, <style> ni bloques LaTeX crudos: ' +
+          'si guardas desde esta pestaña se perderán. ¿Continuar?\n' +
+          '(Recomendado: quedarse en HTML o LaTeX.)'
+        );
+        if (!go) return;
+      }
+      quill.clipboard.dangerouslyPasteHTML(0, html || '<p><br></p>');
+    } else if (tab === 'html') {
+      if (cmHtml) { cmHtml.setValue(html); cmHtml.refresh(); }
+    } else if (tab === 'latex') {
+      if (cmLatex) {
+        cmLatex.setValue(window.AULA_CONVERT ? AULA_CONVERT.htmlToLatex(html) : '');
+        cmLatex.refresh();
+      }
+    }
+    activeTab = tab;
+    if (host) host.setAttribute('data-tab', tab);
+    document.getElementById('edPaneWysiwyg').hidden = tab !== 'wysiwyg';
+    document.getElementById('edPaneHtml').hidden = tab !== 'html';
+    document.getElementById('edPaneLatex').hidden = tab !== 'latex';
+    var tabBtns = document.querySelectorAll('[data-tabbtn]');
+    for (var b = 0; b < tabBtns.length; b++) {
+      var on = tabBtns[b].getAttribute('data-tabbtn') === tab;
+      tabBtns[b].classList.toggle('active', on);
+      tabBtns[b].setAttribute('aria-selected', on ? 'true' : 'false');
+    }
+    if (tab === 'html' && cmHtml) cmHtml.refresh();
+    if (tab === 'latex' && cmLatex) cmLatex.refresh();
+  }
+
+  var tabBtns = document.querySelectorAll('[data-tabbtn]');
+  for (var tb = 0; tb < tabBtns.length; tb++) {
+    (function (btn) {
+      btn.addEventListener('click', function () {
+        switchTab(btn.getAttribute('data-tabbtn'));
+      });
+    })(tabBtns[tb]);
+  }
+
+  // Semilla en la pestaña inicial (por si la pestaña no coincide con Quill).
+  if (activeTab === 'html' && cmHtml) cmHtml.setValue(seed.content || '');
+  if (activeTab === 'latex' && cmLatex && window.AULA_CONVERT) {
+    cmLatex.setValue(AULA_CONVERT.htmlToLatex(seed.content || ''));
+  }
+
+  window.AULA_LESSON_EDITOR = {
+    getHtml: getHtml,
+    getCurrentHtml: currentHtml,
+    quill: quill,
+  };
 
   var form = out && out.closest('form');
-  if (form) form.addEventListener('submit', function () { out.value = getHtml(); });
+  if (form) form.addEventListener('submit', function () { out.value = currentHtml(); });
 
   // ---------- inserts / reemplazos ----------
   function insertEmbed(type, value) {
@@ -292,6 +389,7 @@
 
   // ---------- comandos (bottombar / bubble / toolbar) ----------
   function runCmd(cmd, value) {
+    if (activeTab !== 'wysiwyg') return;
     quill.focus();
     if (cmd === 'image') return pickImage();
     if (cmd === 'formula') return openMath(null);
@@ -354,7 +452,10 @@
 
   quill.on('selection-change', function (range) {
     if (!bubble) return;
-    if (!isMobile() || !range || range.length === 0) { hideBubble(); return; }
+    if (!isMobile() || activeTab !== 'wysiwyg' || !range || range.length === 0) {
+      hideBubble();
+      return;
+    }
     var bounds = quill.getBounds(range.index, range.length);
     var editorRect = mount.getBoundingClientRect();
     bubble.classList.add('show');

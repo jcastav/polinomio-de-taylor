@@ -72,8 +72,12 @@ document.querySelectorAll('[data-preview]').forEach((btn) => {
     const area = document.getElementById('l-content');
     const frame = document.getElementById('lessonPreview');
     if (!area || !frame) return;
-    // Hito 2: si el editor WYSIWYG está activo, sincroniza antes de enviar.
-    if (window.AULA_LESSON_EDITOR) area.value = window.AULA_LESSON_EDITOR.getHtml();
+    // Hito 2/3: sincroniza desde la pestaña activa del editor 3 modos.
+    if (window.AULA_LESSON_EDITOR) {
+      area.value = window.AULA_LESSON_EDITOR.getCurrentHtml
+        ? window.AULA_LESSON_EDITOR.getCurrentHtml()
+        : window.AULA_LESSON_EDITOR.getHtml();
+    }
     const body = new URLSearchParams();
     body.set('content', area.value);
     body.set('token', frame.getAttribute('data-token') || '');
