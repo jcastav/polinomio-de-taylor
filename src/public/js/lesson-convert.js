@@ -289,7 +289,10 @@
       return out;
     }
 
-    return { html: convertLines(lines).join('\n'), hasRaw: hasRaw };
+    // Los bloques se concatenan SIN '\n': un salto de línea entre
+    // <div> embeds se interpretaba como texto y Quill lo materializaba
+    // como <p> </p> basura al volver a WYSIWYG (bug duplicación/espurios).
+    return { html: convertLines(lines).join(''), hasRaw: hasRaw };
   }
 
   var api = { htmlToLatex: htmlToLatex, latexToHtml: latexToHtml };

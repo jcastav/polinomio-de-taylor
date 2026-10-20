@@ -26,6 +26,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "jsdom": "^29.1.1"
+    "jsdom": "^29.1.1",
+    "puppeteer-core": "^25.14.0"
   }
 }

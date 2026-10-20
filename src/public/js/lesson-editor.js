@@ -128,7 +128,17 @@
     },
   });
 
-  if (seed.content) quill.clipboard.dangerouslyPasteHTML(0, seed.content);
+  // Reemplaza TODO el contenido de Quill desde HTML (sin duplicar).
+  // dangerouslyPasteHTML INSERTA en el índice sin borrar lo anterior y
+  // root.innerHTML no actualiza el Delta: el camino correcto es
+  // clipboard.convert → setContents (D24).
+  function setQuillHtml(html) {
+    var delta = quill.clipboard.convert({ html: html || '' });
+    quill.setContents(delta || { ops: [] }, 'silent');
+    quill.setSelection(0, 0);
+  }
+
+  if (seed.content) setQuillHtml(seed.content);
 
   function getHtml() { return quill.root.innerHTML; }
 
@@ -185,7 +195,7 @@
         );
         if (!go) return;
       }
-      quill.clipboard.dangerouslyPasteHTML(0, html || '<p><br></p>');
+      setQuillHtml(html || '<p><br></p>');
     } else if (tab === 'html') {
       if (cmHtml) { cmHtml.setValue(html); cmHtml.refresh(); }
     } else if (tab === 'latex') {
