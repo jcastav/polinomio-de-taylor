@@ -209,6 +209,8 @@ este archivo → resumen ejecutivo → PARAR y esperar luz verde.
 | D21 | MathJax y html2canvas NO se cargan en el head del editor: se lazy-loadan en la primera conversión (MathJax pesa ~1 MB). El host off-screen `.aula-convert-host` se elimina siempre (éxito o error) | Editor rápido hasta que se usa el fallback | 5 |
 | D22 | Migración one-time manual `src/db/migrate-lessons-html.js` (NO en el arranque): `--dry-run` para revisar; convierte solo contenido que no pasa `isHtmlContent` usando el MISMO pipeline de vista (marked + sanitize estricto §12). Idempotente. Ejecutada en la BD local del Hito 6: **6 lecciones migradas (9, 10, 13, 24, 28, 68), 0 restantes** | El schema y el seed quedan intactos (regla del usuario) | 6 |
 | D23 | Tests E2E del Hito 6 (`tmp-check-hito6.js`): flujo completo admin→curso publicado→módulo→lección→contenido rico (math/youtube/raw/lateximg/ñ)→editor seed→preview {doc}→estudiante creado→vista con iframe sandbox→/render con todos los embeds→migración real+idempotente | Cubre el viaje end-to-end sin navegador real | 6 |
+| D24 | **Fix post-cierre (bug crítico de duplicación, reportado en test manual)**: `switchTab('wysiwyg')` y la semilla usaban `quill.clipboard.dangerouslyPasteHTML(0, html)`, que INSERTA en el índice sin borrar lo anterior (el Delta no se limpia) → cada ida y vuelta duplicaba. Nuevo helper `setQuillHtml(html)`: `clipboard.convert({html})` → `setContents(delta, 'silent')` → `setSelection(0,0)`; NUNCA `root.innerHTML=` (no actualiza el Delta). Segundo bug hallado por el test: `latexToHtml` unía bloques con `'\n'` y ese salto entre `<div>` embeds se materializaba como `<p> </p>` basura → ahora `join('')` | Reemplazo canónico de Quill 2 + HTML sin nodos de texto espurios | 7 |
+| D25 | Verificación del fix con **navegador real**: `puppeteer-core` (devDependency) lanzando el Edge del sistema en headless sobre el editor completo (`tmp-check-hito7.js`): 3 ciclos exactos, blots únicos, ñ/acentos, guardado desde pestaña. Tests de Hito 2 actualizados a D15 (las aserciones de los antiguos modos "crudos" ya no aplicaban) | Evidencia end-to-end sin depender de JS simulado | 7 |
 
 ## 5. Registro de commits
 
@@ -222,6 +224,7 @@ este archivo → resumen ejecutivo → PARAR y esperar luz verde.
 | `db03ab2` | 4 | feat: conversor HTML↔LaTeX lossless (tokenizador, opacos, acentos/ñ) |
 | `b83c137` | 5 | feat: fallback "Convertir a imagen" (MathJax+html2canvas→uploads, data-latex-raw) |
 | `6734db3` | 6 | feat: migración markdown→HTML + E2E del editor + README |
+| `5d3aeb2` | 7 | fix: duplicación al cambiar de pestaña (setContents + join sin `\n`) |
 
 ## 6. Pendientes y cosas raras
 
@@ -272,6 +275,7 @@ node tmp-check-hito3.js      # checks Hito 3 (28/28)
 node tmp-check-hito4.js      # checks Hito 4 conversor (46/46, jsdom)
 node tmp-check-hito5.js      # checks Hito 5 convertir-a-imagen (29/29)
 node tmp-check-hito6.js      # E2E editor + migración (40/40)
+node tmp-check-hito7.js      # fix duplicación, navegador real Edge (18/18)
 .\tmp-check-a.ps1            # regresión completa A–E tras cada hito
 ```
 
@@ -319,3 +323,8 @@ E 31/31 (**135/135**) + 224 checks de hito (45+36+28+46+29+40).
 **Pendiente solo de verificación manual en navegador** (no automatizable
 desde Node): reproducción real de YouTube dentro del sandbox (Hito 1) y
 el clic de "Convertir a imagen" con rasterizado real (Hito 5).
+
+**Post-cierre (modo test manual del usuario)**: detectado y corregido el
+bug crítico de duplicación al cambiar de pestaña (D24/D25, tests
+`tmp-check-hito7.js` 18/18 con navegador real + A–E 135/135). Ver fila
+"7" en §5.
