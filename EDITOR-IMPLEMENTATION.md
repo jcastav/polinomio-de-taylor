@@ -211,6 +211,8 @@ este archivo → resumen ejecutivo → PARAR y esperar luz verde.
 | D23 | Tests E2E del Hito 6 (`tmp-check-hito6.js`): flujo completo admin→curso publicado→módulo→lección→contenido rico (math/youtube/raw/lateximg/ñ)→editor seed→preview {doc}→estudiante creado→vista con iframe sandbox→/render con todos los embeds→migración real+idempotente | Cubre el viaje end-to-end sin navegador real | 6 |
 | D24 | **Fix post-cierre (bug crítico de duplicación, reportado en test manual)**: `switchTab('wysiwyg')` y la semilla usaban `quill.clipboard.dangerouslyPasteHTML(0, html)`, que INSERTA en el índice sin borrar lo anterior (el Delta no se limpia) → cada ida y vuelta duplicaba. Nuevo helper `setQuillHtml(html)`: `clipboard.convert({html})` → `setContents(delta, 'silent')` → `setSelection(0,0)`; NUNCA `root.innerHTML=` (no actualiza el Delta). Segundo bug hallado por el test: `latexToHtml` unía bloques con `'\n'` y ese salto entre `<div>` embeds se materializaba como `<p> </p>` basura → ahora `join('')` | Reemplazo canónico de Quill 2 + HTML sin nodos de texto espurios | 7 |
 | D25 | Verificación del fix con **navegador real**: `puppeteer-core` (devDependency) lanzando el Edge del sistema en headless sobre el editor completo (`tmp-check-hito7.js`): 3 ciclos exactos, blots únicos, ñ/acentos, guardado desde pestaña. Tests de Hito 2 actualizados a D15 (las aserciones de los antiguos modos "crudos" ya no aplicaban) | Evidencia end-to-end sin depender de JS simulado | 7 |
+| D26 | **Bug 1 del vídeo (test manual del usuario): escape dentro de template literal.** El transform client-side vive en el template de `renderLessonDocument`; la regex escrita `[^\w-]` en el fuente salía como `[^w-]` (en un template sin etiquetar `\w` pierde la barra) y truncaba el ID a solo caracteres `w`/`-` → `/embed/w` → player inválido con recuadro oscuro. Fijado como `[^\\w-]` (doble barra en el fuente). Trampa simétrica: `safeToken` (línea de JS real, fuera del template) necesita UNA sola barra; ambos casos verificados por códigos de carácter | Los escapes hay que comprobarlos en el código EMITIDO, no en el fuente | 8 |
+| D27 | **Bug 2 del vídeo: YouTube muere en origen opaco.** Control A/B en navegador real: mismo embed con y sin `sandbox="allow-scripts"` → sin sandbox `video:true` y reproduce; con sandbox el player no monta UI (órigen `null`, `document.cookie` lanza SecurityError). La restricción de requisitos (sandbox SIN `allow-same-origin`, por sesión de estudiante) se mantiene: el placeholder `div[data-youtube]` NO se convierte en iframe, se vuelve accesible (tabindex/role) y avía `aula:play-youtube` (id+rect+scroll+token) por postMessage; `lesson-frame.js` (host: vista de lección y preview admin) valida source+token, re-sanitiza el id y monta un overlay `iframe` **fuera** del sandbox (`position:absolute` sobre el placeholder, `autoplay=1`, allowfullscreen); reposiciona en resize y en cada mensaje de altura; un overlay por frame. El contenido editable sigue confinado en el sandbox. Limitación: un `<iframe>` de YouTube escrito a mano en HTML crudo sigue dentro del sandbox (se preserva lossless pero no reproduce); el editor siempre inserta el div | Reproductor en la página host (mismo patrón que `results.ejs`), sandbox intacta | 8 |
 
 ## 5. Registro de commits
 
@@ -225,6 +227,7 @@ este archivo → resumen ejecutivo → PARAR y esperar luz verde.
 | `b83c137` | 5 | feat: fallback "Convertir a imagen" (MathJax+html2canvas→uploads, data-latex-raw) |
 | `6734db3` | 6 | feat: migración markdown→HTML + E2E del editor + README |
 | `5d3aeb2` | 7 | fix: duplicación al cambiar de pestaña (setContents + join sin `\n`) |
+| `69aa900` | 8 | fix: vídeo de YouTube (escape de template + player fuera del sandbox) |
 
 ## 6. Pendientes y cosas raras
 
@@ -276,6 +279,7 @@ node tmp-check-hito4.js      # checks Hito 4 conversor (46/46, jsdom)
 node tmp-check-hito5.js      # checks Hito 5 convertir-a-imagen (29/29)
 node tmp-check-hito6.js      # E2E editor + migración (40/40)
 node tmp-check-hito7.js      # fix duplicación, navegador real Edge (18/18)
+node tmp-check-yt.js         # vídeo YouTube: contrato jsdom + playback real (16/16)
 .\tmp-check-a.ps1            # regresión completa A–E tras cada hito
 ```
 
@@ -321,10 +325,19 @@ E 31/31 (**135/135**) + 224 checks de hito (45+36+28+46+29+40).
 7. **`schema.sql` y `seed.js` intactos**; migración por script aparte.
 
 **Pendiente solo de verificación manual en navegador** (no automatizable
-desde Node): reproducción real de YouTube dentro del sandbox (Hito 1) y
-el clic de "Convertir a imagen" con rasterizado real (Hito 5).
+desde Node): el clic de "Convertir a imagen" con rasterizado real
+(Hito 5). La reproducción de YouTube ahora tiene test automático
+(`tmp-check-yt.js`, 16/16 con playback real) aunque la confirmación
+final del usuario en su navegador es bienvenida.
 
-**Post-cierre (modo test manual del usuario)**: detectado y corregido el
-bug crítico de duplicación al cambiar de pestaña (D24/D25, tests
-`tmp-check-hito7.js` 18/18 con navegador real + A–E 135/135). Ver fila
-"7" en §5.
+**Post-cierre (modo test manual del usuario)**:
+1. Detectado y corregido el bug crítico de duplicación al cambiar de
+   pestaña (D24/D25, `tmp-check-hito7.js` 18/18 + A–E 135/135) — commit
+   `5d3aeb2`.
+2. Reportado: "el vídeo de YouTube no se reproduce dentro del iframe
+   sandbox (recuadro oscuro con texto)". Diagnóstico con doble bug
+   (D26 escape de template truncaba el ID a `w`; D27 el player necesita
+   su origen propio y muere en la sandbox opaca — control A/B) y fix
+   con reproductor fuera del sandbox. Verificado: `tmp-check-yt.js`
+   16/16 (currentTime avanza), hitos 1–7 en verde (242 checks) y A–E
+   135/135. Ver fila "8" en §5.
