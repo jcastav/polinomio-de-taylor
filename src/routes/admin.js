@@ -221,6 +221,26 @@ function savedQuery(msg) {
   return `?saved=1&flash=${encodeURIComponent(msg)}`;
 }
 
+// Hito 2: modo de edición de la lección. El WYSIWYG (Quill) conserva lo que
+// sus blots saben serializar; contenido con <script>/<style>/LaTeX crudo se
+// edita como texto hasta las pestañas HTML/LaTeX (Hito 3). Markdown legacy
+// se conserva como texto para no romperlo (la migración es el Hito 6).
+const EDITOR_HEAD = [
+  '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">',
+  '<link rel="stylesheet" href="/css/lesson-editor.css">',
+].join('\n');
+
+function editorLocals(content) {
+  const text = String(content || '');
+  const advanced = /<script[\s>]|<style[\s>]|data-latex-raw/i.test(text);
+  const editorMode = advanced
+    ? 'raw-advanced'
+    : (!text.trim() || isHtmlContent(text) ? 'wysiwyg' : 'raw-legacy');
+  // JSON embebido para sembrar Quill; \u003c evita cerrar el </script>.
+  const editorSeed = JSON.stringify({ content: text }).replace(/</g, '\\u003c');
+  return { editorMode, editorSeed };
+}
+
 function savedFlash(req, fallback) {
   if (req.query.saved !== '1') return null;
   return String(req.query.flash || fallback || 'Guardado correctamente').slice(0, 120);
@@ -442,7 +462,7 @@ router.post('/modules/:id/lessons', requireAdmin, wrap(async (req, res) => {
       await sb().from('lessons').insert({
         module_id: mod.id,
         title: check.data.title,
-        content: '# ' + check.data.title + '\n\n_Contenido pendiente._\n',
+        content: '',
         position: await nextPosition('lessons', 'module_id', mod.id),
       })
     );
@@ -496,11 +516,14 @@ router.get('/lessons/:id', requireAdmin, wrap(async (req, res) => {
   const mod = await findModule(lesson.module_id);
   const course = await findCourse(mod.course_id);
 
+  const ed = editorLocals(lesson.content);
   renderAdmin(res, 'admin/lesson-edit', `${lesson.title} — Aula`,
     `Panel <span class="sep">/</span> ${esc(course.title)} ` +
     `<span class="sep">/</span> <b>${esc(lesson.title)}</b>`, {
       lesson, module: mod, course, errors: {}, values: {},
       previewToken: newFrameToken(),
+      ...ed,
+      ...(ed.editorMode === 'wysiwyg' ? { extraHead: EDITOR_HEAD } : {}),
     });
 }));
 
@@ -515,11 +538,14 @@ router.post('/lessons/:id', requireAdmin, wrap(async (req, res) => {
     content: req.body.content || '',
   });
   if (!check.ok) {
+    const ed = editorLocals(req.body.content || '');
     return renderAdmin(res, 'admin/lesson-edit', `${lesson.title} — Aula`,
       `Panel <span class="sep">/</span> ${esc(course.title)} ` +
       `<span class="sep">/</span> <b>${esc(lesson.title)}</b>`, {
         lesson, module: mod, course, errors: check.errors, values: req.body,
         previewToken: newFrameToken(),
+        ...ed,
+        ...(ed.editorMode === 'wysiwyg' ? { extraHead: EDITOR_HEAD } : {}),
       });
   }
 

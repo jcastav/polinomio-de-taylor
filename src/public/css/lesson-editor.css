@@ -1,0 +1,176 @@
+/* Editor de lección 3 modos (Hito 2: Quill WYSIWYG). Tokens de la plataforma. */
+
+/* ---- contenedor ---- */
+.ed-wrap{
+  border:1px solid var(--line);
+  background:#fff;
+}
+.ed-wrap .ql-container.ql-snow{ border:0; }
+.ed-wrap .ql-editor{
+  min-height:340px;
+  font:14.5px/1.62 Georgia, "Times New Roman", serif;
+  color:var(--ink);
+}
+.ed-wrap .ql-editor.ql-blank::before{
+  color:var(--muted); font:13px/1.5 Tahoma, sans-serif; left:12px; top:12px;
+}
+
+/* Toolbar desktop: plana, bordes 1px, fondo panel (mockup aprobado). */
+.ql-toolbar.ql-snow{
+  border:0 !important;
+  border-bottom:1px solid var(--line-soft) !important;
+  background:var(--panel);
+  font-family:Tahoma, Verdana, sans-serif;
+}
+.ql-toolbar.ql-snow .ql-stroke{ stroke:var(--ink); }
+.ql-toolbar.ql-snow .ql-fill{ fill:var(--ink); }
+.ql-toolbar.ql-snow .ql-picker{ color:var(--ink); }
+.ql-toolbar.ql-snow button, .ql-toolbar.ql-snow .ql-picker-label{
+  border-radius:0;
+}
+.ql-toolbar.ql-snow button:hover{ background:var(--hl); }
+.ql-toolbar.ql-snow button.ql-active{ background:#e4dcc8; }
+
+.ed-toolbar .ed-btn{
+  border:0; background:transparent; cursor:pointer;
+  min-width:28px; height:28px; padding:0 6px;
+  font:700 12px/1 Tahoma, sans-serif; color:var(--ink);
+}
+.ed-toolbar .ed-btn:hover{ background:var(--hl); }
+
+/* ---- blots del editor ---- */
+.math-inline{
+  display:inline-block;
+  padding:0 5px; margin:0 1px;
+  border:1px solid #c9b98a;
+  background:#f7f1de;
+  font:12.5px/1.45 Consolas, "Courier New", monospace;
+  color:#3a3428;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.math-block{
+  display:block;
+  margin:8px 0; padding:10px 12px;
+  border:1px solid #c9b98a;
+  background:#f7f1de;
+  text-align:center;
+  font:13px/1.5 Consolas, "Courier New", monospace;
+  color:#3a3428;
+  cursor:pointer;
+}
+.aula-youtube{
+  display:block; position:relative;
+  aspect-ratio:16/9;
+  border:1px solid var(--line);
+  background:#1b1b1b;
+  margin:8px 0;
+  cursor:pointer;
+}
+.aula-youtube .aula-youtube-ph{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  color:#f3efe6; font:700 12px/1.4 Tahoma, sans-serif;
+  letter-spacing:.06em; text-align:center; padding:10px;
+}
+.raw-block{
+  display:block; margin:8px 0; padding:8px 10px;
+  border:1px dashed var(--line);
+  background:#fff;
+  font:12px/1.5 Consolas, "Courier New", monospace;
+  white-space:pre-wrap;
+  cursor:pointer;
+}
+.raw-block .raw-tag{
+  display:block; margin-bottom:4px;
+  font:700 10px/1 Tahoma, sans-serif;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
+}
+
+/* Puente hidden al textarea del formulario (fallback si falla el JS). */
+.ed-bridge{
+  position:absolute; left:-10000px; top:auto;
+  width:1px; height:1px; overflow:hidden;
+}
+
+/* ---- móvil <820px: sin toolbar arriba, bottombar + bubble ---- */
+.ed-bottombar, .ed-bubble{ display:none; }
+
+@media (max-width:820px){
+  .ed-toolbar{ display:none !important; }
+  .ed-wrap .ql-editor{ min-height:260px; }
+
+  .ed-bottombar{
+    display:flex; align-items:center; justify-content:flex-end; gap:4px;
+    position:fixed; left:0; right:0; bottom:0; z-index:60;
+    height:48px; padding:0 10px;
+    background:var(--panel);
+    border-top:1px solid var(--line);
+  }
+  .ed-bottombar select{
+    height:34px; border:1px solid var(--line); background:#fff;
+    font:12px Tahoma, sans-serif; border-radius:0;
+  }
+  .ed-bottombar button{
+    min-width:44px; min-height:44px;
+    border:1px solid transparent; background:transparent;
+    font:700 14px/1 Tahoma, sans-serif; color:var(--ink);
+    cursor:pointer;
+  }
+  .ed-bottombar button:hover, .ed-bottombar button:active{ background:var(--hl); }
+
+  .ed-bubble{
+    display:none;
+    position:absolute; z-index:70;
+    background:var(--topbar);
+    border:1px solid #000;
+    padding:3px;
+  }
+  .ed-bubble.show{ display:flex; }
+  .ed-bubble button{
+    min-width:40px; min-height:40px;
+    border:0; background:transparent; color:#f3efe6;
+    font:700 13px/1 Tahoma, sans-serif; cursor:pointer;
+  }
+  .ed-bubble button:hover{ background:#333; }
+}
+
+/* ---- diálogos (fórmula / YouTube / LaTeX crudo) ---- */
+.ed-backdrop{
+  display:none;
+  position:fixed; inset:0; z-index:80;
+  background:rgba(23,23,23,.45);
+  align-items:center; justify-content:center;
+  padding:16px;
+}
+.ed-backdrop.show{ display:flex; }
+.ed-dialog{
+  width:100%; max-width:520px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  padding:16px;
+}
+.ed-dialog h3{
+  margin:0 0 10px;
+  font:700 12px/1 Tahoma, sans-serif;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--accent-2);
+}
+.ed-dialog input[type="url"], .ed-dialog textarea{
+  width:100%; border:1px solid var(--line); background:#fff;
+  padding:8px 10px; font:13px Consolas, "Courier New", monospace;
+  border-radius:0;
+}
+.ed-dialog textarea{ min-height:120px; resize:vertical; }
+.ed-dialog math-field{
+  display:block; min-height:56px;
+  border:1px solid var(--line); background:#fff;
+  padding:6px 8px; margin-bottom:10px;
+  font-size:18px;
+}
+.ed-dialog .chk{
+  display:flex; align-items:center; gap:6px;
+  font:12px Tahoma, sans-serif; color:var(--muted);
+  margin:8px 0;
+}
+.ed-dialog-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+.ed-note{ font:11.5px/1.4 Tahoma, sans-serif; color:var(--muted); margin:0 0 8px; }

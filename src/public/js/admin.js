@@ -66,12 +66,14 @@ document.querySelectorAll('.qform').forEach((form) => {
   showPanels();
 });
 
-// ---------- preview de lección (iframe sandbox, Hito 1) ----------
+// ---------- preview de lección (iframe sandbox, Hito 1/2) ----------
 document.querySelectorAll('[data-preview]').forEach((btn) => {
   btn.addEventListener('click', async () => {
     const area = document.getElementById('l-content');
     const frame = document.getElementById('lessonPreview');
     if (!area || !frame) return;
+    // Hito 2: si el editor WYSIWYG está activo, sincroniza antes de enviar.
+    if (window.AULA_LESSON_EDITOR) area.value = window.AULA_LESSON_EDITOR.getHtml();
     const body = new URLSearchParams();
     body.set('content', area.value);
     body.set('token', frame.getAttribute('data-token') || '');

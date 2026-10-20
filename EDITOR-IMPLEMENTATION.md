@@ -160,9 +160,9 @@ conserva íntegro en `data-latex-raw`.
 |---|---|---|
 | CodeMirror | `5.65.16` (jsdelivr) | pestañas HTML/LaTeX |
 | MathJax | `3` (`tex-mml-chtml.js`, jsdelivr) | render de `data-latex` (lectura) |
-| MathLive | última estable fijar al integrar | diálogo de fórmulas (editor) |
-| Quill | `2.x` fijar al integrar | WYSIWYG |
-| html2canvas | fijar al integrar | convertir-a-imagen |
+| MathLive | `0.111.1` (jsdelivr) | diálogo de fórmulas (editor) |
+| Quill | `2.0.3` (jsdelivr) | WYSIWYG |
+| html2canvas | fijar al integrar (Hito 5) | convertir-a-imagen |
 
 Sin build step: todo por CDN o `src/public/js` plano. Sin npm nuevo salvo
 necesidad demostrada.
@@ -172,9 +172,9 @@ necesidad demostrada.
 | # | Hito | Estado |
 |---|---|---|
 | 0 | `EDITOR-IMPLEMENTATION.md` (este archivo) | ✅ |
-| 1 | Render infra: `lesson-html.js`, ruta `/render`, iframe sandbox en estudiante y preview admin, dual-format, MathJax, youtube transform, postMessage height | ✅ (45/45 checks + regresión A–E verde) |
-| 2 | Quill 2 WYSIWYG en editor de lección (blots math/youtube/raw, uploads imagen, bottombar/bubble móvil, guardado sanitizado) | ⬅ siguiente |
-| 3 | CodeMirror 5: pestañas HTML y LaTeX sobre el mismo documento | pendiente |
+| 1 | Render infra: `lesson-html.js`, ruta `/render`, iframe sandbox en estudiante y preview admin, dual-format, MathJax, youtube transform, postMessage height | ✅ `14cf38c` (45/45 checks) |
+| 2 | Quill 2 WYSIWYG en editor de lección (blots math/youtube/raw, uploads imagen, bottombar/bubble móvil, guardado sanitizado) | ✅ (36/36 checks + A–E verde) |
+| 3 | CodeMirror 5: pestañas HTML y LaTeX sobre el mismo documento | ⬅ siguiente |
 | 4 | Conversor HTML↔LaTeX lossless (aulaimg/aulavideo/aularaw, opacos, acentos/ñ) | pendiente |
 | 5 | Fallback "Convertir a imagen" (MathJax → html2canvas → upload; `data-latex-raw` preservado) | pendiente |
 | 6 | Migración de lecciones demo a HTML + tests E2E + README | pendiente |
@@ -192,6 +192,13 @@ este archivo → resumen ejecutivo → PARAR y esperar luz verde.
 | D4 | MathJax solo se inyecta en el documento si el contenido tiene `data-latex`/`\(`/`\[` | Evita carga CDN muerta en lecciones legacy | 1 |
 | D5 | Altura: `ResizeObserver` + resize + postMessage con token por request; listener en `/js/lesson-frame.js` (clase `.lesson-frame`, reutilizado por el preview admin) | Un solo mecanismo para estudiante y preview | 1 |
 | D6 | `tmp-check-a.ps1` ajustado: última lección del módulo 1 se resuelve dinámicamente (el usuario añadió la lección 68 "Ejemplo" a mano; el test hardcodeaba la 10) | Datos manuales ≠ regresión rota; A vuelve a 29/29 | 1 |
+| D7 | CDN fijados: Quill **2.0.3**, MathLive **0.111.1** (jsdelivr). Assets propios: `public/js/lesson-editor.js` + `public/css/lesson-editor.css`. `layout.ejs` ganó hook `extraHead` (inyectado solo en modo wysiwyg) | Sin build step; paleta del mockup aprobado | 2 |
+| D8 | Tres modos de edición en `lesson-edit.ejs`: `wysiwyg` (contenido vacío o HTML simple), `raw-legacy` (markdown sin tocar), `raw-advanced` (contiene `<script>`/`<style>`/`data-latex-raw` → textarea cruda con aviso, hasta las pestañas del Hito 3). NO se migra markdown al abrir (migración = Hito 6) | Quill solo conserva lo que sus blots serializan; el aviso evita pérdida silenciosa | 2 |
+| D9 | Lecciones nuevas nacen con `content: ''` (antes placeholder markdown) para abrir directo en Quill | Flujo admin nuevos sin markdown | 2 |
+| D10 | Blots ES6 (`class extends Embed/BlockEmbed` — el patrón ES5 con `.call()` rompe en Quill 2). Math = chips monospace con `data-latex` (MathJax NO typeset dentro del DOM de Quill); clic en chip abre el diálogo MathLive para editar; `aula-youtube` y `aula-raw` igual con sus diálogos | API de Quill 2; Delta no se rompe | 2 |
+| D11 | Imagen: file picker valida `image/*` y ≤10MB en cliente → `POST /admin/uploads` → `insertEmbed('image', url)` | Upload ya existente (§8.3) | 2 |
+| D12 | Móvil: bottombar + bubble propios (no el theme bubble de Quill); botones con `touchstart`+`preventDefault` Y `click`; bubble positioned con `quill.getBounds`; bottombar ajustada con `window.visualViewport` | Instrucción 2.b del usuario; iOS Safari | 2 |
+| D13 | Puente `textarea.ed-bridge` (name=content) sincronizado en `submit` del form y en el botón Previsualizar vía `window.AULA_LESSON_EDITOR.getHtml()`. Sin JS, el form degrada al contenido original del textarea | Sin romper el POST existente | 2 |
 
 ## 5. Registro de commits
 
@@ -199,7 +206,8 @@ este archivo → resumen ejecutivo → PARAR y esperar luz verde.
 |---|---|---|
 | `c2e3d0b` | — | feat: mockup editor 3 modos (aprobado visualmente) |
 | `5b1894c` | 0 | docs: EDITOR-IMPLEMENTATION.md |
-| _(este commit)_ | 1 | feat: render de lección en iframe sandbox con dual-format |
+| `14cf38c` | 1 | feat: render de lección en iframe sandbox con dual-format |
+| _(commit de este hito)_ | 2 | feat: editor Quill 2 WYSIWYG con blots custom y MathLive |
 
 ## 6. Pendientes y cosas raras
 
@@ -220,9 +228,17 @@ este archivo → resumen ejecutivo → PARAR y esperar luz verde.
 - Los `tmp-*` son gitignored; scripts de prueba por hito:
   `tmp-check-hitoN.js` (Node, fetch + cookies).
 - **Preview admin con `srcdoc`**: verificado en Hito 1 (URLs relativas
-  resuelven contra el padre; tokens.css/base.css cargan).
-- `tmp-check-hito1.js` puede reutilizarse como base para checks de hitos
-  posteriores (login admin, creación de módulo/lección tmp, limpieza).
+  resuelven contra el padre; tokens.css/base.css cargan). El botón
+  Previsualizar sincroniza Quill → POST → srcdoc (verificado en Hito 2).
+- `tmp-check-hito1.js` y `tmp-check-hito2.js` reutilizables como base
+  (login admin, creación de módulo/lección tmp, limpieza).
+- **Si un run de `tmp-check-e.ps1` se interrumpe** (timeout), deja curso
+  `tmp-test-6b-curso` y estudiante `tmp-test-alum6b`: limpiar con
+  `sb().from('courses').delete().like('slug','tmp-test-6b%')` +
+  users like `tmp-test-alum6b` antes de reintentar (slugs duplicados
+  rompen el regex del setup).
+- El editor WYSIWYG solo carga en modo `wysiwyg`; las páginas raw no
+  descargan Quill/MathLive (extraHead condicional).
 
 ## 7. Cómo probar (por hito)
 
@@ -231,7 +247,8 @@ este archivo → resumen ejecutivo → PARAR y esperar luz verde.
 $env:PORT=3100; Start-Process node -ArgumentList 'src/server.js' `
   -RedirectStandardOutput tmp-server.log -RedirectStandardError tmp-server.err
 
-node tmp-check-hito1.js      # checks del Hito 1 (borrar al cerrar hito)
+node tmp-check-hito1.js      # checks Hito 1 (45/45)
+node tmp-check-hito2.js      # checks Hito 2 (36/36)
 .\tmp-check-a.ps1            # regresión completa A–E tras cada hito
 ```
 

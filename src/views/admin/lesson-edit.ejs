@@ -18,12 +18,52 @@
            value="<%= values.title || lesson.title %>">
     <% if (errors.title) { %><span class="field-error"><%= errors.title %></span><% } %>
   </div>
+
+  <% if (editorMode === 'wysiwyg') { %>
   <div class="form-row">
-    <label for="l-content">Contenido (markdown)</label>
+    <label for="lessonEditor">Contenido</label>
+    <div class="ed-wrap">
+      <div id="editorToolbar" class="ql-toolbar ed-toolbar" role="toolbar" aria-label="Formato">
+        <select class="ql-header" id="edHeader" aria-label="Título">
+          <option value="1">H1</option>
+          <option value="2">H2</option>
+          <option value="3">H3</option>
+          <option selected value="">Texto</option>
+        </select>
+        <button class="ql-bold" aria-label="Negritas"></button>
+        <button class="ql-italic" aria-label="Cursiva"></button>
+        <button class="ql-underline" aria-label="Subrayado"></button>
+        <button class="ql-strike" aria-label="Tachado"></button>
+        <button class="ql-list" value="bullet" aria-label="Lista"></button>
+        <button class="ql-list" value="ordered" aria-label="Lista numerada"></button>
+        <button class="ql-blockquote" aria-label="Cita"></button>
+        <button class="ql-code-block" aria-label="Código"></button>
+        <button class="ql-link" aria-label="Enlace"></button>
+        <button class="ql-image" aria-label="Imagen"></button>
+        <button class="ql-formula" aria-label="Fórmula">ƒx</button>
+        <button data-ed="youtube" aria-label="Video de YouTube">▶</button>
+        <button class="ql-clean" aria-label="Limpiar formato"></button>
+      </div>
+      <div id="lessonEditor"></div>
+    </div>
+    <textarea id="l-content" name="content" class="ed-bridge" tabindex="-1" aria-hidden="true"><%= values.content !== undefined ? values.content : lesson.content %></textarea>
+    <% if (errors.content) { %><span class="field-error"><%= errors.content %></span><% } %>
+    <span class="field-hint">Las fórmulas se insertan con ƒx (MathLive) y se guardan como LaTeX. Las imágenes se suben a la plataforma. El contenido avanzado (&lt;script&gt;, &lt;style&gt;, LaTeX crudo) se edita en las pestañas HTML/LaTeX.</span>
+  </div>
+  <% } else { %>
+  <div class="form-row">
+    <label for="l-content">Contenido (<%= editorMode === 'raw-legacy' ? 'markdown (legacy)' : 'HTML / LaTeX crudo' %>)</label>
+    <% if (editorMode === 'raw-advanced') { %>
+    <span class="field-hint">Este contenido tiene &lt;script&gt;, &lt;style&gt; o bloques LaTeX sin convertir: el modo WYSIWYG no puede conservarlos, así que se edita como texto por ahora (pestañas HTML/LaTeX en el siguiente paso).</span>
+    <% } else { %>
+    <span class="field-hint">Markdown guardado antes del editor nuevo. Se conserva tal cual; al guardarlo puedes sustituirlo por HTML del editor.</span>
+    <% } %>
     <textarea id="l-content" name="content" rows="16" class="code-area"
               spellcheck="false"><%= values.content !== undefined ? values.content : lesson.content %></textarea>
     <% if (errors.content) { %><span class="field-error"><%= errors.content %></span><% } %>
   </div>
+  <% } %>
+
   <div class="result-actions">
     <button class="btn btn-dark" type="submit">Guardar</button>
     <button class="btn" type="button" data-preview="<%= lesson.id %>">Previsualizar</button>
@@ -44,3 +84,71 @@
     <button class="btn btn-danger" type="submit">Eliminar lección</button>
   </form>
 </div>
+
+<% if (editorMode === 'wysiwyg') { %>
+<script type="application/json" id="lessonSeed"><%- editorSeed %></script>
+
+<div class="ed-bottombar" id="edBottombar" aria-label="Formato">
+  <select id="edHeaderMobile" aria-label="Título">
+    <option value="">Texto</option>
+    <option value="1">H1</option>
+    <option value="2">H2</option>
+    <option value="3">H3</option>
+  </select>
+  <button type="button" data-ed-cmd="list" data-value="bullet" aria-label="Lista">•</button>
+  <button type="button" data-ed-cmd="list" data-value="ordered" aria-label="Numerada">1.</button>
+  <button type="button" data-ed-cmd="blockquote" aria-label="Cita">❝</button>
+  <button type="button" data-ed-cmd="image" aria-label="Imagen">🖼</button>
+  <button type="button" data-ed-cmd="formula" aria-label="Fórmula">ƒx</button>
+  <button type="button" data-ed-cmd="youtube" aria-label="Video">▶</button>
+</div>
+
+<div class="ed-bubble" id="edBubble" role="toolbar" aria-label="Formato de selección">
+  <button type="button" data-ed-cmd="bold" aria-label="Negritas"><b>B</b></button>
+  <button type="button" data-ed-cmd="italic" aria-label="Cursiva"><i>I</i></button>
+  <button type="button" data-ed-cmd="link" aria-label="Enlace">🔗</button>
+  <button type="button" data-ed-cmd="header" data-value="2" aria-label="H2">H2</button>
+  <button type="button" data-ed-cmd="code" aria-label="Código">‹›</button>
+</div>
+
+<div class="ed-backdrop" id="edMathBackdrop">
+  <div class="ed-dialog" role="dialog" aria-modal="true" aria-label="Fórmula">
+    <h3>Fórmula (LaTeX)</h3>
+    <p class="ed-note">Escribe o elige símbolos con el teclado visual. Se guarda como LaTeX y MathJax la renderiza al leer.</p>
+    <math-field id="edMathField" smart-mode></math-field>
+    <label class="chk"><input type="checkbox" id="edMathDisplay"> Fórmula en bloque (línea propia)</label>
+    <div class="ed-dialog-actions">
+      <button type="button" class="btn" id="edMathCancel">Cancelar</button>
+      <button type="button" class="btn btn-dark" id="edMathSave">Insertar</button>
+    </div>
+  </div>
+</div>
+
+<div class="ed-backdrop" id="edYtBackdrop">
+  <div class="ed-dialog" role="dialog" aria-modal="true" aria-label="Video de YouTube">
+    <h3>Video de YouTube</h3>
+    <p class="ed-note">Pega la URL del video (o el ID). Se embebe en el iframe de la lección.</p>
+    <input type="url" id="edYtUrl" placeholder="https://www.youtube.com/watch?v=…">
+    <div class="ed-dialog-actions">
+      <button type="button" class="btn" id="edYtCancel">Cancelar</button>
+      <button type="button" class="btn btn-dark" id="edYtSave">Insertar</button>
+    </div>
+  </div>
+</div>
+
+<div class="ed-backdrop" id="edRawBackdrop">
+  <div class="ed-dialog" role="dialog" aria-modal="true" aria-label="Bloque LaTeX">
+    <h3>Bloque LaTeX (sin convertir)</h3>
+    <p class="ed-note">Se conserva exactamente como lo escribas. No se renderiza como fórmula en el editor; en la vista de estudiante MathJax lo muestra.</p>
+    <textarea id="edRawText" spellcheck="false"></textarea>
+    <div class="ed-dialog-actions">
+      <button type="button" class="btn" id="edRawCancel">Cancelar</button>
+      <button type="button" class="btn btn-dark" id="edRawSave">Guardar bloque</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathlive@0.111.1/dist/mathlive.min.js"></script>
+<script src="/js/lesson-editor.js"></script>
+<% } %>
