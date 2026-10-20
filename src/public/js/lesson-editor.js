@@ -75,6 +75,11 @@
       const code = document.createElement('div');
       code.textContent = raw.length > 200 ? raw.slice(0, 200) + '…' : raw;
       node.appendChild(code);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'raw-convert';
+      btn.textContent = 'Convertir a imagen';
+      node.appendChild(btn);
       return node;
     }
     static value(node) { return node.getAttribute('data-latex-raw'); }
@@ -83,10 +88,33 @@
   RawLatexBlot.tagName = 'div';
   RawLatexBlot.className = 'raw-block';
 
+  // Imagen PNG generada por html2canvas (Hito 5). El original SIEMPRE
+  // vive en data-latex-raw: el HTML canónico y la pestaña LaTeX lo conservan.
+  class LatexImgBlot extends BlockEmbed {
+    static create(value) {
+      const node = super.create();
+      node.setAttribute('src', value.src);
+      node.setAttribute('alt', 'Fórmula convertida a imagen');
+      node.setAttribute('data-latex-raw', value.latexRaw);
+      node.setAttribute('contenteditable', 'false');
+      return node;
+    }
+    static value(node) {
+      return {
+        src: node.getAttribute('src'),
+        latexRaw: node.getAttribute('data-latex-raw'),
+      };
+    }
+  }
+  LatexImgBlot.blotName = 'aula-lateximg';
+  LatexImgBlot.tagName = 'img';
+  LatexImgBlot.className = 'aula-lateximg';
+
   Quill.register('formats/aula-math-inline', MathInlineBlot, true);
   Quill.register('formats/aula-math-block', MathBlockBlot, true);
   Quill.register('formats/aula-youtube', YoutubeBlot, true);
   Quill.register('formats/aula-raw', RawLatexBlot, true);
+  Quill.register('formats/aula-lateximg', LatexImgBlot, true);
 
   // ---------- instancia ----------
   var quill = new Quill('#lessonEditor', {
@@ -202,6 +230,90 @@
   if (activeTab === 'latex' && cmLatex && window.AULA_CONVERT) {
     cmLatex.setValue(AULA_CONVERT.htmlToLatex(seed.content || ''));
   }
+
+  // ---------- fallback "Convertir a imagen" (Hito 5) ----------
+  // MathJax (CHTML) typesetea el LaTeX crudo off-screen, html2canvas lo
+  // rasteriza a PNG y se sube a /admin/uploads. El bloque se reemplaza por
+  // <img class="aula-lateximg" data-latex-raw="…">: el código original
+  // SIEMPRE queda en data-latex-raw (BD y pestaña LaTeX).
+  var MATHJAX_CDN = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+  var H2C_CDN = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+
+  function ensureLib(src) {
+    return new Promise(function (resolve, reject) {
+      var s = document.querySelector('script[src="' + src + '"]');
+      if (s) {
+        if (s.getAttribute('data-loaded')) return resolve();
+        s.addEventListener('load', function () { resolve(); });
+        s.addEventListener('error', function () { reject(new Error('CDN no accesible')); });
+        return;
+      }
+      var el = document.createElement('script');
+      el.src = src;
+      el.async = true;
+      el.onload = function () { el.setAttribute('data-loaded', '1'); resolve(); };
+      el.onerror = function () { reject(new Error('CDN no accesible')); };
+      document.head.appendChild(el);
+    });
+  }
+
+  function convertRawToImage(blot) {
+    var raw = blot.value(blot.domNode);
+    if (!raw || !raw.trim()) return;
+    var idx = quill.getIndex(blot);
+    ensureLib(MATHJAX_CDN)
+      .then(function () { return ensureLib(H2C_CDN); })
+      .then(function () {
+        var host = document.createElement('div');
+        host.className = 'aula-convert-host';
+        var tex = document.createElement('div');
+        tex.textContent = '\\[' + raw + '\\]';
+        host.appendChild(tex);
+        document.body.appendChild(host);
+        return MathJax.typesetPromise([tex])
+          .then(function () {
+            return html2canvas(host, { backgroundColor: '#ffffff', scale: 2 });
+          })
+          .then(function (canvas) {
+            if (host.parentNode) host.parentNode.removeChild(host);
+            return new Promise(function (resolve, reject) {
+              canvas.toBlob(function (blob) {
+                if (!blob) return reject(new Error('canvas vacío'));
+                var fd = new FormData();
+                fd.append('file', blob, 'latex.png');
+                fetch('/admin/uploads', { method: 'POST', body: fd })
+                  .then(function (r) { return r.json(); })
+                  .then(function (data) {
+                    if (!data || !data.url) reject(new Error('subida rechazada'));
+                    else resolve(data);
+                  })
+                  .catch(reject);
+              }, 'image/png');
+            });
+          })
+          .catch(function (err) {
+            if (host.parentNode) host.parentNode.removeChild(host);
+            throw err;
+          });
+      })
+      .then(function (data) {
+        quill.deleteText(idx, 1, Quill.sources.USER);
+        quill.insertEmbed(idx, 'aula-lateximg', { src: data.url, latexRaw: raw }, Quill.sources.USER);
+      })
+      .catch(function (err) {
+        alert('No se pudo convertir a imagen: ' + (err && err.message ? err.message : err));
+      });
+  }
+
+  quill.root.addEventListener('click', function (e) {
+    var t = e.target;
+    var btn = t && t.closest ? t.closest('.raw-convert') : null;
+    if (!btn) return;
+    e.preventDefault();
+    var block = btn.closest('.raw-block');
+    var blot = block ? Quill.find(block) : null;
+    if (blot) convertRawToImage(blot);
+  });
 
   window.AULA_LESSON_EDITOR = {
     getHtml: getHtml,

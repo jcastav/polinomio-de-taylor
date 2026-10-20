@@ -22,7 +22,7 @@ const PERMISSIVE = {
     ...sanitizeHtml.defaults.allowedAttributes,
     '*': ['class', 'id', 'style'],
     a: ['href', 'name', 'target', 'rel', 'title'],
-    img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
+    img: ['src', 'alt', 'title', 'width', 'height', 'loading', 'data-latex-raw'],
     span: ['data-latex'],
     div: ['data-youtube', 'data-latex', 'data-latex-raw'],
     figure: ['data-latex-raw'],

@@ -107,22 +107,53 @@
 }
 .raw-block{
   display:block; margin:8px 0; padding:8px 10px;
-  border:1px dashed var(--line);
-  background:#fff;
+  border:1px dashed var(--accent-2);
+  background:#fffdf5;
   font:12px/1.5 Consolas, "Courier New", monospace;
   white-space:pre-wrap;
-  cursor:pointer;
+  user-select:none;
 }
 .raw-block .raw-tag{
   display:block; margin-bottom:4px;
   font:700 10px/1 Tahoma, sans-serif;
-  letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
+  letter-spacing:.1em; text-transform:uppercase; color:var(--accent-2);
 }
 
 /* Puente hidden al textarea del formulario (fallback si falla el JS). */
 .ed-bridge{
   position:absolute; left:-10000px; top:auto;
   width:1px; height:1px; overflow:hidden;
+}
+
+/* ---- bloque opaco: botón Convertir a imagen (Hito 5) ---- */
+.raw-block .raw-convert{
+  display:block;
+  margin-top:8px;
+  padding:5px 10px;
+  border:1px solid var(--line);
+  background:var(--panel);
+  cursor:pointer;
+  font:700 11px/1 Tahoma, sans-serif;
+  color:var(--ink);
+}
+.raw-block .raw-convert:hover{ background:var(--hl); border-color:var(--accent-2); }
+
+/* imagen LaTeX generada por html2canvas (Hito 5) */
+.aula-lateximg{
+  max-width:100%;
+  display:block;
+  margin:8px 0;
+  border:1px solid var(--line-soft);
+  background:#fff;
+}
+.aula-convert-host{
+  position:fixed;
+  left:-10000px;
+  top:0;
+  background:#fff;
+  padding:24px;
+  font-size:16px;
+  color:#000;
 }
 
 /* ---- móvil <820px: sin toolbar arriba, bottombar + bubble (solo WYSIWYG) ---- */

@@ -176,8 +176,8 @@ necesidad demostrada.
 | 2 | Quill 2 WYSIWYG en editor de lección (blots math/youtube/raw, uploads imagen, bottombar/bubble móvil, guardado sanitizado) | ✅ `7e8999e` (36/36 checks + A–E verde) |
 | 3 | CodeMirror 5: pestañas HTML y LaTeX sobre el mismo documento | ✅ `d7a9435` (28/28 checks + A–E verde) |
 | 4 | Conversor HTML↔LaTeX lossless (aulaimg/aulavideo/aularaw, opacos, acentos/ñ) | ✅ (46/46 checks jsdom + A–E verde) |
-| 5 | Fallback "Convertir a imagen" (MathJax → html2canvas → upload; `data-latex-raw` preservado) | ⬅ siguiente |
-| 6 | Migración de lecciones demo a HTML + tests E2E + README | pendiente |
+| 5 | Fallback "Convertir a imagen" (MathJax → html2canvas → upload; `data-latex-raw` preservado) | ✅ (29/29 checks + A–E verde) |
+| 6 | Migración de lecciones demo a HTML + tests E2E + README | ⬅ siguiente |
 
 **Protocolo**: al terminar cada hito → commit atómico → actualizar §5 y §6 de
 este archivo → resumen ejecutivo → PARAR y esperar luz verde.
@@ -205,6 +205,8 @@ este archivo → resumen ejecutivo → PARAR y esperar luz verde.
 | D17 | Tokenizador de `inlineFromLatex` (regex por llamada, recursivo): los escapes de texto LaTeX (`\%`, `\&`, `\#`, `\$`, `\_`, `\{`, `\}`, `\\`→`<br>`) se decodifican SOLO en segmentos de texto plano, nunca dentro de atributos `data-latex*` → «texto → LaTeX → texto» exacto con ñ, acentos y símbolos | Lossless real; el enfoque de replace global del mockup corrompía atributos | 4 |
 | D18 | `\newcommand`/`\renewcommand`/`\providecommand`/`\def` (llaves balanceadas) y `\begin{env}` con argumentos (`\begin{tabular}{ll}`, `[opt]`) → bloque opaco con código exacto; `equation`, `tabular`, etc. siguen opacos (el nombre del entorno se conserva en `data-latex-raw`); `center`/`flushleft`/`flushright` ↔ `div.ql-align-*` (Quill) con conversión de contenido anidado | Lo no convertible nunca se degrada; lo convertible conserva el entorno original | 4 |
 | D19 | `aularaw` es bidireccional exacto: `\begin{aularaw}\nX\n\end{aularaw}` ↔ `div.raw-block[data-latex-raw="X"]` (X SIN el wrapper; el wrapper se re-emite al volver a LaTeX). Imagen inline: `\aulaimg{src}{alt}` se reconoce también dentro de párrafos. Al pasar a pestaña LaTeX con `<script>`/`<style>`/`<table>`: `confirm()` de aviso | Round-trip estable sin anidamiento de wrappers | 4 |
+| D20 | Fallback "Convertir a imagen": botón `raw-convert` en el blot `aula-raw`; carga lazy de MathJax 3 CHTML + html2canvas 1.4.1 por CDN solo al pulsar; typeset off-screen → `canvas.toBlob` → `POST /admin/uploads` (Supabase Storage en prod) → blot `aula-lateximg` (`<img class="aula-lateximg" data-latex-raw="…">`). El conversor emite `aularaw` para img con `data-latex-raw` (nunca `\aulaimg`, que perdería el original); sanitize conserva `data-latex-raw` en img | El PNG es SOLO representación visual: el código LaTeX original vive siempre en `data-latex-raw` (regla 1 del usuario) | 5 |
+| D21 | MathJax y html2canvas NO se cargan en el head del editor: se lazy-loadan en la primera conversión (MathJax pesa ~1 MB). El host off-screen `.aula-convert-host` se elimina siempre (éxito o error) | Editor rápido hasta que se usa el fallback | 5 |
 
 ## 5. Registro de commits
 
@@ -215,7 +217,8 @@ este archivo → resumen ejecutivo → PARAR y esperar luz verde.
 | `14cf38c` | 1 | feat: render de lección en iframe sandbox con dual-format |
 | `7e8999e` | 2 | feat: editor Quill 2 WYSIWYG con blots custom y MathLive |
 | `d7a9435` | 3 | feat: CodeMirror 5 en pestañas HTML y LaTeX con conversor base |
-| _(commit de este hito)_ | 4 | feat: conversor HTML↔LaTeX lossless (tokenizador, opacos, acentos/ñ) |
+| `db03ab2` | 4 | feat: conversor HTML↔LaTeX lossless (tokenizador, opacos, acentos/ñ) |
+| _(commit de este hito)_ | 5 | feat: fallback "Convertir a imagen" (MathJax+html2canvas→uploads, data-latex-raw) |
 
 ## 6. Pendientes y cosas raras
 
@@ -224,13 +227,18 @@ este archivo → resumen ejecutivo → PARAR y esperar luz verde.
   verificación manual** en el navegador (Hito 1 dejó el transform y los
   estilos; no se pudo probar reproducción desde Node). Si no reproduce,
   evaluar `allow-same-origin` — NO sin volver a preguntar.
+- **"Convertir a imagen"**: el clic real en navegador (MathJax typeset +
+  html2canvas rasteriza + sube) **queda pendiente de verificación manual**
+  (Node no ejecuta canvas/CDN); lo automatizado cubre el conversor, la
+  subida real a uploads (Supabase Storage) y el sanitize/guardado.
 - **sanitize-html + `allowVulnerableTags`**: emite warning de XSS; es
   intencional y está confinado. No quitar el flag.
 - Lecciones 9/24/28, **68 "Ejemplo" (módulo 1)** y quiz 17 en BD local son
   producto de pruebas manuales del usuario; no culpar al código si los
   tests se desincronizan (D6).
 - Regresión completa: `tmp-check-a/b/c/d/e.ps1` (**A 29/29, B 18/18,
-  C 22/22, D 35/35, E 31/31** tras Hito 1) + `tmp-check-hito1.js` (45/45).
+  C 22/22, D 35/35, E 31/31** — verde tras cada hito 1–5) +
+  `tmp-check-hitoN.js` por hito.
   Servidor :3100. Tras tocar `src/routes/*.js` → reiniciar servidor (falso
   error `ChildProcess.kill` con Start-Process; verificar con GET /login 200).
 - Los `tmp-*` son gitignored; scripts de prueba por hito:
@@ -259,6 +267,7 @@ node tmp-check-hito1.js      # checks Hito 1 (45/45)
 node tmp-check-hito2.js      # checks Hito 2 (36/36)
 node tmp-check-hito3.js      # checks Hito 3 (28/28)
 node tmp-check-hito4.js      # checks Hito 4 conversor (46/46, jsdom)
+node tmp-check-hito5.js      # checks Hito 5 convertir-a-imagen (29/29)
 .\tmp-check-a.ps1            # regresión completa A–E tras cada hito
 ```
 

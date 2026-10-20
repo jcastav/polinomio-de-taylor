@@ -95,6 +95,9 @@
         blocks.push('\\begin{quote}\n' + inlineToLatex(el) + '\n\\end{quote}');
       } else if (t === 'pre') {
         blocks.push('\\begin{verbatim}\n' + el.textContent + '\n\\end{verbatim}');
+      } else if (t === 'img' && ds.latexRaw !== undefined) {
+        // imagen LaTeX (fallback Hito 5): el código original manda
+        blocks.push('\\begin{aularaw}\n' + ds.latexRaw + '\n\\end{aularaw}');
       } else if (t === 'img') {
         blocks.push('\\aulaimg{' + (el.getAttribute('src') || '') + '}{' + (el.getAttribute('alt') || '') + '}');
       } else if (t === 'div' && ds.youtube) {
