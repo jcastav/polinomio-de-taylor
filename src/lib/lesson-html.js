@@ -109,6 +109,10 @@ body{ margin:0; padding:14px 16px 24px; }
 .raw-block{ border:1px dashed var(--line); background:#fff; padding:8px 10px; font:12px/1.5 Consolas, "Courier New", monospace; margin:0 0 14px; white-space:pre-wrap; }
 .raw-block .raw-tag{ display:block; font:700 10px/1 Tahoma, sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
 .lesson-youtube{ display:block; width:100%; aspect-ratio:16/9; height:auto; border:0; margin:0 0 14px; background:#000; }
+.aula-youtube{ display:flex; align-items:center; justify-content:center; position:relative; aspect-ratio:16/9; border:1px solid var(--line-soft); background:#1b1b1b; margin:0 0 14px; cursor:pointer; color:#f3efe6; font:700 12px/1.4 Tahoma, sans-serif; letter-spacing:.06em; text-align:center; padding:12px; box-sizing:border-box; }
+.aula-youtube:hover{ border-color:var(--accent); }
+.aula-youtube:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.aula-youtube .aula-youtube-ph{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:12px; text-align:center; }
 </style>
 </head>
 <body>
@@ -130,15 +134,33 @@ ${mathjax}
   var yt = document.querySelectorAll('div[data-youtube]');
   for (var i = 0; i < yt.length; i++) {
     (function (el) {
-      var id = String(el.getAttribute('data-youtube') || '').replace(/[^\w-]/g, '');
+      var id = String(el.getAttribute('data-youtube') || '').replace(/[^\\w-]/g, '');
       if (!id) return;
-      var f = document.createElement('iframe');
-      f.src = 'https://www.youtube-nocookie.com/embed/' + id;
-      f.title = el.getAttribute('data-title') || 'Video';
-      f.className = 'lesson-youtube';
-      f.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
-      f.setAttribute('allowfullscreen', '');
-      el.parentNode.replaceChild(f, el);
+      // D27: el placeholder NO se convierte en iframe aquí. El documento corre
+      // en origen opaco (sandbox sin allow-same-origin) y el player de YouTube
+      // exige su origen propio; se avía al padre y lesson-frame.js monta el
+      // reproductor FUERA del sandbox.
+      el.setAttribute('tabindex', '0');
+      el.setAttribute('role', 'button');
+      if (!el.getAttribute('aria-label')) el.setAttribute('aria-label', 'Reproducir video');
+      function play() {
+        var r = el.getBoundingClientRect();
+        parent.postMessage({
+          type: 'aula:play-youtube',
+          token: token,
+          id: id,
+          rect: { left: r.left, top: r.top, width: r.width, height: r.height },
+          sx: window.scrollX || 0,
+          sy: window.scrollY || 0
+        }, '*');
+      }
+      el.addEventListener('click', play);
+      el.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+          e.preventDefault();
+          play();
+        }
+      });
     })(yt[i]);
   }
   if (window.ResizeObserver) {
