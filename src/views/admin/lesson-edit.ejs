@@ -32,7 +32,11 @@
 </form>
 
 <h2>Vista previa</h2>
-<div class="panel-box lesson-body" id="lessonPreview"><%- previewHtml %></div>
+<iframe class="lesson-frame" id="lessonPreview" sandbox="allow-scripts"
+        title="Vista previa de la lección"
+        data-token="<%= previewToken %>"
+        src="/c/<%= course.slug %>/l/<%= lesson.id %>/render?t=<%= previewToken %>"></iframe>
+<script src="/js/lesson-frame.js"></script>
 
 <div class="result-actions">
   <form method="post" action="/admin/lessons/<%= lesson.id %>/delete"

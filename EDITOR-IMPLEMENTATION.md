@@ -172,8 +172,8 @@ necesidad demostrada.
 | # | Hito | Estado |
 |---|---|---|
 | 0 | `EDITOR-IMPLEMENTATION.md` (este archivo) | ✅ |
-| 1 | Render infra: `lesson-html.js`, ruta `/render`, iframe sandbox en estudiante y preview admin, dual-format, MathJax, youtube transform, postMessage height | ⬅ en curso |
-| 2 | Quill 2 WYSIWYG en editor de lección (blots math/youtube/raw, uploads imagen, bottombar/bubble móvil, guardado sanitizado) | pendiente |
+| 1 | Render infra: `lesson-html.js`, ruta `/render`, iframe sandbox en estudiante y preview admin, dual-format, MathJax, youtube transform, postMessage height | ✅ (45/45 checks + regresión A–E verde) |
+| 2 | Quill 2 WYSIWYG en editor de lección (blots math/youtube/raw, uploads imagen, bottombar/bubble móvil, guardado sanitizado) | ⬅ siguiente |
 | 3 | CodeMirror 5: pestañas HTML y LaTeX sobre el mismo documento | pendiente |
 | 4 | Conversor HTML↔LaTeX lossless (aulaimg/aulavideo/aularaw, opacos, acentos/ñ) | pendiente |
 | 5 | Fallback "Convertir a imagen" (MathJax → html2canvas → upload; `data-latex-raw` preservado) | pendiente |
@@ -182,31 +182,47 @@ necesidad demostrada.
 **Protocolo**: al terminar cada hito → commit atómico → actualizar §5 y §6 de
 este archivo → resumen ejecutivo → PARAR y esperar luz verde.
 
+### 4.1 Decisiones tomadas en la implementación (log)
+
+| # | Decisión | Razón | Hito |
+|---|---|---|---|
+| D1 | Sanitizado al guardar SOLO si `isHtmlContent(content)`; markdown legacy queda intacto en la BD | El sanitize-html re-serializa y podría romper `<` sueltos del markdown; el markdown se sanea estricto al render (§12) | 1 |
+| D2 | Preview admin = iframe `srcdoc` + `{doc}` desde `POST /preview` (token ecoado en el body) | Nunca inyectar HTML del admin inline en la página admin (regla del apéndice); srcdoc aísla igual que /render | 1 |
+| D3 | YouTube → `youtube-nocookie.com/embed/` vía transform **client-side** dentro del iframe | Sin dependencias extra (cheerio); el ID se filtra a `[\w-]`; se crea dentro del sandbox | 1 |
+| D4 | MathJax solo se inyecta en el documento si el contenido tiene `data-latex`/`\(`/`\[` | Evita carga CDN muerta en lecciones legacy | 1 |
+| D5 | Altura: `ResizeObserver` + resize + postMessage con token por request; listener en `/js/lesson-frame.js` (clase `.lesson-frame`, reutilizado por el preview admin) | Un solo mecanismo para estudiante y preview | 1 |
+| D6 | `tmp-check-a.ps1` ajustado: última lección del módulo 1 se resuelve dinámicamente (el usuario añadió la lección 68 "Ejemplo" a mano; el test hardcodeaba la 10) | Datos manuales ≠ regresión rota; A vuelve a 29/29 | 1 |
+
 ## 5. Registro de commits
 
 | Commit | Hito | Descripción |
 |---|---|---|
 | `c2e3d0b` | — | feat: mockup editor 3 modos (aprobado visualmente) |
-| _(Hito 0 aquí)_ | 0 | docs: EDITOR-IMPLEMENTATION.md |
+| `5b1894c` | 0 | docs: EDITOR-IMPLEMENTATION.md |
+| _(este commit)_ | 1 | feat: render de lección en iframe sandbox con dual-format |
 
 ## 6. Pendientes y cosas raras
 
-- **YouTube dentro de `sandbox="allow-scripts"`**: verificar reproducción
-  real en Hito 1 (youtube-nocookie suele funcionar con origen opaco; si no,
- evaluar `allow-same-origin` — NO sin volver a preguntar).
+- **YouTube dentro de `sandbox="allow-scripts"`**: la reproducción REAL del
+  embed youtube-nocookie dentro del iframe sandbox **queda pendiente de
+  verificación manual** en el navegador (Hito 1 dejó el transform y los
+  estilos; no se pudo probar reproducción desde Node). Si no reproduce,
+  evaluar `allow-same-origin` — NO sin volver a preguntar.
 - **sanitize-html + `allowVulnerableTags`**: emite warning de XSS; es
   intencional y está confinado. No quitar el flag.
-- Lecciones 9/24/28 y quiz 17 en BD local son producto de pruebas manuales
-  del usuario; no culpar al código si los tests se desincronizan.
-- Regresión completa: `tmp-check-a/b/c/d/e.ps1` (A 29/29, B 18/18, C 22/22,
-  D 35/35, E 31/31 en última corrida). Servidor :3100. Tras tocar
-  `src/routes/*.js` → reiniciar servidor (falso error `ChildProcess.kill`
-  con Start-Process; verificar con GET /login 200).
+- Lecciones 9/24/28, **68 "Ejemplo" (módulo 1)** y quiz 17 en BD local son
+  producto de pruebas manuales del usuario; no culpar al código si los
+  tests se desincronizan (D6).
+- Regresión completa: `tmp-check-a/b/c/d/e.ps1` (**A 29/29, B 18/18,
+  C 22/22, D 35/35, E 31/31** tras Hito 1) + `tmp-check-hito1.js` (45/45).
+  Servidor :3100. Tras tocar `src/routes/*.js` → reiniciar servidor (falso
+  error `ChildProcess.kill` con Start-Process; verificar con GET /login 200).
 - Los `tmp-*` son gitignored; scripts de prueba por hito:
   `tmp-check-hitoN.js` (Node, fetch + cookies).
-- **Preview admin con `srcdoc`**: contenido `about:srcdoc` resuelve URLs
-  relativas contra el documento padre → `/css/*` carga bien. Verificar en
-  Hito 1.
+- **Preview admin con `srcdoc`**: verificado en Hito 1 (URLs relativas
+  resuelven contra el padre; tokens.css/base.css cargan).
+- `tmp-check-hito1.js` puede reutilizarse como base para checks de hitos
+  posteriores (login admin, creación de módulo/lección tmp, limpieza).
 
 ## 7. Cómo probar (por hito)
 

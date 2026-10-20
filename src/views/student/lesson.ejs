@@ -9,9 +9,11 @@
 <p class="locked-flash" role="alert">Completa las lecciones del módulo para acceder al quiz</p>
 <% } %>
 
-<div class="lesson-body">
-  <%- lesson.html %>
-</div>
+<iframe class="lesson-frame" id="lessonFrame" sandbox="allow-scripts"
+        title="Contenido de la lección"
+        data-token="<%= frameToken %>"
+        src="/c/<%= course.slug %>/l/<%= lesson.id %>/render?t=<%= frameToken %>"></iframe>
+<script src="/js/lesson-frame.js"></script>
 
 <% if (isLastLesson && moduleInfo && moduleInfo.quiz) { %>
 <%

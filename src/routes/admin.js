@@ -4,7 +4,10 @@ const { z } = require('zod');
 const { sb, unwrap } = require('../db/client');
 const { requireAdmin, hashPassword } = require('../lib/auth');
 const { validate } = require('../lib/validate');
-const { renderMarkdown } = require('../lib/markdown');
+const {
+  isHtmlContent, sanitizeLessonHtml, renderLessonContent,
+  renderLessonDocument, newFrameToken,
+} = require('../lib/lesson-html');
 const quizLib = require('../lib/quiz');
 
 const router = express.Router();
@@ -497,7 +500,7 @@ router.get('/lessons/:id', requireAdmin, wrap(async (req, res) => {
     `Panel <span class="sep">/</span> ${esc(course.title)} ` +
     `<span class="sep">/</span> <b>${esc(lesson.title)}</b>`, {
       lesson, module: mod, course, errors: {}, values: {},
-      previewHtml: renderMarkdown(lesson.content),
+      previewToken: newFrameToken(),
     });
 }));
 
@@ -516,19 +519,35 @@ router.post('/lessons/:id', requireAdmin, wrap(async (req, res) => {
       `Panel <span class="sep">/</span> ${esc(course.title)} ` +
       `<span class="sep">/</span> <b>${esc(lesson.title)}</b>`, {
         lesson, module: mod, course, errors: check.errors, values: req.body,
-        previewHtml: renderMarkdown(req.body.content || ''),
+        previewToken: newFrameToken(),
       });
   }
 
-  unwrap(await sb().from('lessons').update(check.data).eq('id', lesson.id));
+  // HTML del editor → saneado al guardar (defensa en profundidad; el
+  // render en /render vuelve a sanitizar). Markdown legacy → intacto.
+  const data = {
+    title: check.data.title,
+    content: isHtmlContent(check.data.content)
+      ? sanitizeLessonHtml(check.data.content)
+      : check.data.content,
+  };
+  unwrap(await sb().from('lessons').update(data).eq('id', lesson.id));
   // B3: tras guardar se vuelve al árbol del curso (UX-012: banner).
   res.redirect(`/admin/courses/${course.id}${savedQuery('Lección guardada')}`);
 }));
 
-// Preview markdown del editor (JSON; añadido a §6.3).
+// Preview del editor (JSON): documento completo para el iframe sandbox
+// del panel (srcdoc). El HTML del admin NO se inyecta inline en la página
+// admin (EDITOR-IMPLEMENTATION.md §3.3).
 router.post('/lessons/:id/preview', requireAdmin, wrap(async (req, res) => {
   const content = String(req.body.content || '').slice(0, 100000);
-  res.json({ html: renderMarkdown(content) });
+  res.json({
+    doc: renderLessonDocument({
+      innerHtml: renderLessonContent(content),
+      token: String(req.body.token || '').slice(0, 64),
+      title: 'Vista previa — Aula',
+    }),
+  });
 }));
 
 router.post('/lessons/:id/delete', requireAdmin, wrap(async (req, res) => {

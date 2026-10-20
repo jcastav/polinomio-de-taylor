@@ -1,7 +1,7 @@
 const express = require('express');
 const { sb, unwrap } = require('../db/client');
 const { requireAuth, requireStudent } = require('../lib/auth');
-const { renderMarkdown } = require('../lib/markdown');
+const { renderLessonContent, renderLessonDocument, newFrameToken } = require('../lib/lesson-html');
 const quizLib = require('../lib/quiz');
 
 const router = express.Router();
@@ -52,6 +52,25 @@ async function courseOk(req, course) {
   if (!course) return false;
   if (!course.published && req.user.role !== 'admin') return false;
   return true;
+}
+
+// Lección + módulo con validación de pertenencia al curso (vista y /render).
+async function findLessonScoped(course, lessonId) {
+  const lesson = unwrap(
+    await sb().from('lessons')
+      .select('id, module_id, title, content, position')
+      .eq('id', lessonId)
+      .maybeSingle()
+  );
+  if (!lesson) return null;
+  const mod = unwrap(
+    await sb().from('modules')
+      .select('id, course_id, title, position')
+      .eq('id', lesson.module_id)
+      .maybeSingle()
+  );
+  if (!mod || mod.course_id !== course.id) return null;
+  return { lesson, mod };
 }
 
 async function findQuiz(course, quizId) {
@@ -382,29 +401,16 @@ router.get('/c/:slug', requireStudent, wrap(async (req, res) => {
   });
 }));
 
-// Lección con markdown renderizado (§9.2). El quiz NO se embebe: es
-// ítem hermano en el árbol y se entra desde su propia ruta (UX decisiones).
+// Lección (§9.2). El contenido se sirve vía iframe sandbox en /render
+// (Hito 1). El quiz NO se embebe: es ítem hermano en el árbol y se entra
+// desde su propia ruta (UX decisiones).
 router.get('/c/:slug/l/:lessonId', requireStudent, wrap(async (req, res) => {
   const course = await findCourse(req.params.slug);
   if (!(await courseOk(req, course))) return res.renderError(404, 'Curso no encontrado');
 
-  const lesson = unwrap(
-    await sb().from('lessons')
-      .select('id, module_id, title, content, position')
-      .eq('id', req.params.lessonId)
-      .maybeSingle()
-  );
-  if (!lesson) return res.renderError(404, 'Lección no encontrada');
-
-  const mod = unwrap(
-    await sb().from('modules')
-      .select('id, course_id, title, position')
-      .eq('id', lesson.module_id)
-      .maybeSingle()
-  );
-  if (!mod || mod.course_id !== course.id) {
-    return res.renderError(404, 'Lección no encontrada');
-  }
+  const scoped = await findLessonScoped(course, req.params.lessonId);
+  if (!scoped) return res.renderError(404, 'Lección no encontrada');
+  const { lesson, mod } = scoped;
 
   const { tree, stats, exam, nextLesson } = await courseContext(req, course);
   const idx = stats.flat.findIndex((l) => l.id === lesson.id);
@@ -427,7 +433,10 @@ router.get('/c/:slug/l/:lessonId', requireStudent, wrap(async (req, res) => {
     course, tree, stats, exam, nextLesson: next,
     currentLessonId: lesson.id,
     module: mod,
-    lesson: { ...lesson, html: renderMarkdown(lesson.content) },
+    lesson,
+    // Hito 1: el contenido se sirve en iframe sandbox (allow-scripts),
+    // nunca inyectado inline en la página del curso.
+    frameToken: newFrameToken(),
     completed,
     prev,
     next,
@@ -443,6 +452,25 @@ router.get('/c/:slug/l/:lessonId', requireStudent, wrap(async (req, res) => {
     crumbs: `<a href="/c/${course.slug}">Curso</a> <span class="sep">/</span> ${esc(mod.title)} ` +
             `<span class="sep">/</span> <b>${esc(lesson.title)}</b>`,
   });
+}));
+
+// Documento de lección para el iframe sandbox (editor 3 modos — Hito 1).
+// El <style>/<script> del admin solo se ejecuta aquí: sandbox
+// allow-scripts SIN allow-same-origin (origen opaco, sin cookies ni DOM
+// padre). Ver EDITOR-IMPLEMENTATION.md §3.2–3.3.
+router.get('/c/:slug/l/:lessonId/render', requireStudent, wrap(async (req, res) => {
+  const course = await findCourse(req.params.slug);
+  if (!(await courseOk(req, course))) return res.status(404).send('Curso no encontrado');
+
+  const scoped = await findLessonScoped(course, req.params.lessonId);
+  if (!scoped) return res.status(404).send('Lección no encontrada');
+
+  res.set('Cache-Control', 'no-store');
+  res.type('html').send(renderLessonDocument({
+    innerHtml: renderLessonContent(scoped.lesson.content),
+    token: String(req.query.t || '').slice(0, 64),
+    title: `${scoped.lesson.title} — Aula`,
+  }));
 }));
 
 // Marcar lección como completada (§9.2). No estaba en la tabla de §6.2

@@ -66,14 +66,15 @@ document.querySelectorAll('.qform').forEach((form) => {
   showPanels();
 });
 
-// ---------- preview markdown de lección ----------
+// ---------- preview de lección (iframe sandbox, Hito 1) ----------
 document.querySelectorAll('[data-preview]').forEach((btn) => {
   btn.addEventListener('click', async () => {
     const area = document.getElementById('l-content');
-    const out = document.getElementById('lessonPreview');
-    if (!area || !out) return;
+    const frame = document.getElementById('lessonPreview');
+    if (!area || !frame) return;
     const body = new URLSearchParams();
     body.set('content', area.value);
+    body.set('token', frame.getAttribute('data-token') || '');
     const r = await fetch(`/admin/lessons/${btn.dataset.preview}/preview`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -81,8 +82,8 @@ document.querySelectorAll('[data-preview]').forEach((btn) => {
     });
     if (r.ok) {
       const data = await r.json();
-      out.innerHTML = data.html;
-      out.scrollIntoView({ block: 'nearest' });
+      frame.setAttribute('srcdoc', data.doc);
+      frame.scrollIntoView({ block: 'nearest' });
     }
   });
 });
