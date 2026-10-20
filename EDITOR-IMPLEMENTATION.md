@@ -175,9 +175,9 @@ necesidad demostrada.
 | 1 | Render infra: `lesson-html.js`, ruta `/render`, iframe sandbox en estudiante y preview admin, dual-format, MathJax, youtube transform, postMessage height | ✅ `14cf38c` (45/45 checks) |
 | 2 | Quill 2 WYSIWYG en editor de lección (blots math/youtube/raw, uploads imagen, bottombar/bubble móvil, guardado sanitizado) | ✅ `7e8999e` (36/36 checks + A–E verde) |
 | 3 | CodeMirror 5: pestañas HTML y LaTeX sobre el mismo documento | ✅ `d7a9435` (28/28 checks + A–E verde) |
-| 4 | Conversor HTML↔LaTeX lossless (aulaimg/aulavideo/aularaw, opacos, acentos/ñ) | ✅ (46/46 checks jsdom + A–E verde) |
-| 5 | Fallback "Convertir a imagen" (MathJax → html2canvas → upload; `data-latex-raw` preservado) | ✅ (29/29 checks + A–E verde) |
-| 6 | Migración de lecciones demo a HTML + tests E2E + README | ✅ (40/40 checks E2E + A–E verde 135/135) |
+| 4 | Conversor HTML↔LaTeX lossless (aulaimg/aulavideo/aularaw, opacos, acentos/ñ) | ✅ `db03ab2` (46/46 checks jsdom + A–E verde) |
+| 5 | Fallback "Convertir a imagen" (MathJax → html2canvas → upload; `data-latex-raw` preservado) | ✅ `b83c137` (29/29 checks + A–E verde) |
+| 6 | Migración de lecciones demo a HTML + tests E2E + README | ✅ `6734db3` (40/40 checks E2E + A–E verde 135/135) |
 
 **Protocolo**: al terminar cada hito → commit atómico → actualizar §5 y §6 de
 este archivo → resumen ejecutivo → PARAR y esperar luz verde.
@@ -221,7 +221,7 @@ este archivo → resumen ejecutivo → PARAR y esperar luz verde.
 | `d7a9435` | 3 | feat: CodeMirror 5 en pestañas HTML y LaTeX con conversor base |
 | `db03ab2` | 4 | feat: conversor HTML↔LaTeX lossless (tokenizador, opacos, acentos/ñ) |
 | `b83c137` | 5 | feat: fallback "Convertir a imagen" (MathJax+html2canvas→uploads, data-latex-raw) |
-| _(commit de este hito)_ | 6 | feat: migración markdown→HTML + E2E del editor + README |
+| `6734db3` | 6 | feat: migración markdown→HTML + E2E del editor + README |
 
 ## 6. Pendientes y cosas raras
 
@@ -293,7 +293,7 @@ implementados, probados y commiteados de forma atómica:
 | 3 | CodeMirror 5.65.16 en pestañas **WYSIWYG \| HTML \| LaTeX** (htmlmixed+stex+addons); documento canónico HTML (`currentHtml()`); pestaña inicial según contenido (D15); conversor base | `d7a9435` | 28/28 + A–E |
 | 4 | Conversor lossless: tokenizador recursivo (escapes `\%`… solo en texto), `\newcommand`/`def`/envs con argumentos → opacos exactos, `center/flushleft/flushright` ↔ `ql-align-*`, `aularaw` sin wrapper anidado, img inline, ñ/acentos/símbolos estables | `db03ab2` | 46/46 (jsdom) + A–E |
 | 5 | Fallback **"Convertir a imagen"**: MathJax 3 CHTML + html2canvas 1.4.1 (lazy) → PNG → `/admin/uploads` (Supabase Storage) → blot `aula-lateximg` con `data-latex-raw` SIEMPRE preservado (BD, LaTeX tab vía `aularaw`, vista estudiante) | `b83c137` | 29/29 + A–E |
-| 6 | `src/db/migrate-lessons-html.js` (one-time, idempotente, `--dry-run`; **6 lecciones migradas en la BD local**), E2E completo admin→estudiante (`tmp-check-hito6.js`), README actualizado | _(este commit)_ | 40/40 + A–E |
+| 6 | `src/db/migrate-lessons-html.js` (one-time, idempotente, `--dry-run`; **6 lecciones migradas en la BD local**), E2E completo admin→estudiante (`tmp-check-hito6.js`), README actualizado | `6734db3` | 40/40 + A–E |
 
 **Regresión total al cierre**: A 29/29 · B 18/18 · C 22/22 · D 35/35 ·
 E 31/31 (**135/135**) + 224 checks de hito (45+36+28+46+29+40).
