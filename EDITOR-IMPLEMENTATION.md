@@ -177,7 +177,7 @@ necesidad demostrada.
 | 3 | CodeMirror 5: pestañas HTML y LaTeX sobre el mismo documento | ✅ `d7a9435` (28/28 checks + A–E verde) |
 | 4 | Conversor HTML↔LaTeX lossless (aulaimg/aulavideo/aularaw, opacos, acentos/ñ) | ✅ (46/46 checks jsdom + A–E verde) |
 | 5 | Fallback "Convertir a imagen" (MathJax → html2canvas → upload; `data-latex-raw` preservado) | ✅ (29/29 checks + A–E verde) |
-| 6 | Migración de lecciones demo a HTML + tests E2E + README | ⬅ siguiente |
+| 6 | Migración de lecciones demo a HTML + tests E2E + README | ✅ (40/40 checks E2E + A–E verde 135/135) |
 
 **Protocolo**: al terminar cada hito → commit atómico → actualizar §5 y §6 de
 este archivo → resumen ejecutivo → PARAR y esperar luz verde.
@@ -207,6 +207,8 @@ este archivo → resumen ejecutivo → PARAR y esperar luz verde.
 | D19 | `aularaw` es bidireccional exacto: `\begin{aularaw}\nX\n\end{aularaw}` ↔ `div.raw-block[data-latex-raw="X"]` (X SIN el wrapper; el wrapper se re-emite al volver a LaTeX). Imagen inline: `\aulaimg{src}{alt}` se reconoce también dentro de párrafos. Al pasar a pestaña LaTeX con `<script>`/`<style>`/`<table>`: `confirm()` de aviso | Round-trip estable sin anidamiento de wrappers | 4 |
 | D20 | Fallback "Convertir a imagen": botón `raw-convert` en el blot `aula-raw`; carga lazy de MathJax 3 CHTML + html2canvas 1.4.1 por CDN solo al pulsar; typeset off-screen → `canvas.toBlob` → `POST /admin/uploads` (Supabase Storage en prod) → blot `aula-lateximg` (`<img class="aula-lateximg" data-latex-raw="…">`). El conversor emite `aularaw` para img con `data-latex-raw` (nunca `\aulaimg`, que perdería el original); sanitize conserva `data-latex-raw` en img | El PNG es SOLO representación visual: el código LaTeX original vive siempre en `data-latex-raw` (regla 1 del usuario) | 5 |
 | D21 | MathJax y html2canvas NO se cargan en el head del editor: se lazy-loadan en la primera conversión (MathJax pesa ~1 MB). El host off-screen `.aula-convert-host` se elimina siempre (éxito o error) | Editor rápido hasta que se usa el fallback | 5 |
+| D22 | Migración one-time manual `src/db/migrate-lessons-html.js` (NO en el arranque): `--dry-run` para revisar; convierte solo contenido que no pasa `isHtmlContent` usando el MISMO pipeline de vista (marked + sanitize estricto §12). Idempotente. Ejecutada en la BD local del Hito 6: **6 lecciones migradas (9, 10, 13, 24, 28, 68), 0 restantes** | El schema y el seed quedan intactos (regla del usuario) | 6 |
+| D23 | Tests E2E del Hito 6 (`tmp-check-hito6.js`): flujo completo admin→curso publicado→módulo→lección→contenido rico (math/youtube/raw/lateximg/ñ)→editor seed→preview {doc}→estudiante creado→vista con iframe sandbox→/render con todos los embeds→migración real+idempotente | Cubre el viaje end-to-end sin navegador real | 6 |
 
 ## 5. Registro de commits
 
@@ -218,7 +220,8 @@ este archivo → resumen ejecutivo → PARAR y esperar luz verde.
 | `7e8999e` | 2 | feat: editor Quill 2 WYSIWYG con blots custom y MathLive |
 | `d7a9435` | 3 | feat: CodeMirror 5 en pestañas HTML y LaTeX con conversor base |
 | `db03ab2` | 4 | feat: conversor HTML↔LaTeX lossless (tokenizador, opacos, acentos/ñ) |
-| _(commit de este hito)_ | 5 | feat: fallback "Convertir a imagen" (MathJax+html2canvas→uploads, data-latex-raw) |
+| `b83c137` | 5 | feat: fallback "Convertir a imagen" (MathJax+html2canvas→uploads, data-latex-raw) |
+| _(commit de este hito)_ | 6 | feat: migración markdown→HTML + E2E del editor + README |
 
 ## 6. Pendientes y cosas raras
 
@@ -268,6 +271,7 @@ node tmp-check-hito2.js      # checks Hito 2 (36/36)
 node tmp-check-hito3.js      # checks Hito 3 (28/28)
 node tmp-check-hito4.js      # checks Hito 4 conversor (46/46, jsdom)
 node tmp-check-hito5.js      # checks Hito 5 convertir-a-imagen (29/29)
+node tmp-check-hito6.js      # E2E editor + migración (40/40)
 .\tmp-check-a.ps1            # regresión completa A–E tras cada hito
 ```
 
@@ -275,3 +279,43 @@ Pruebas manuales clave del Hito 1: abrir una lección como estudiante (iframe
 crece al cargar, MathJax renderiza, YouTube embebido reproduce), preview del
 admin con `<script>`/`<style>` (se ven dentro del iframe, no rompen la
 plataforma), lección markdown legacy se ve normal.
+
+## 8. Resumen final de la implementación (Hitos 0–6 completados)
+
+**Estado: IMPLEMENTACIÓN COMPLETA.** Los 7 hitos (0–6) del plan quedaron
+implementados, probados y commiteados de forma atómica:
+
+| Hito | Qué entrega | Commit | Tests |
+|---|---|---|---|
+| 0 | Este plan en `EDITOR-IMPLEMENTATION.md` | `5b1894c` | — |
+| 1 | Render infra: `lesson-html.js` (sanitize dual permisivo/estricto + `isHtmlContent`), `GET /c/:slug/l/:id/render`, iframe `sandbox="allow-scripts"` (sin `allow-same-origin`) en estudiante y preview admin (`srcdoc` + `{doc}` con token), MathJax condicional, transform youtube-nocookie, `postMessage` de altura con token anti-spoofing | `14cf38c` | 45/45 |
+| 2 | Editor Quill 2 WYSIWYG: blots ES6 `aula-math-inline/block`, `aula-youtube`, `aula-raw`; diálogos MathLive/YouTube/LaTeX crudo; imágenes vía `/admin/uploads` ≤10MB; bottombar+bubble móvil con `touchstart`+`preventDefault`; guardado sanitizado; puente `ed-bridge` | `7e8999e` | 36/36 + A–E |
+| 3 | CodeMirror 5.65.16 en pestañas **WYSIWYG \| HTML \| LaTeX** (htmlmixed+stex+addons); documento canónico HTML (`currentHtml()`); pestaña inicial según contenido (D15); conversor base | `d7a9435` | 28/28 + A–E |
+| 4 | Conversor lossless: tokenizador recursivo (escapes `\%`… solo en texto), `\newcommand`/`def`/envs con argumentos → opacos exactos, `center/flushleft/flushright` ↔ `ql-align-*`, `aularaw` sin wrapper anidado, img inline, ñ/acentos/símbolos estables | `db03ab2` | 46/46 (jsdom) + A–E |
+| 5 | Fallback **"Convertir a imagen"**: MathJax 3 CHTML + html2canvas 1.4.1 (lazy) → PNG → `/admin/uploads` (Supabase Storage) → blot `aula-lateximg` con `data-latex-raw` SIEMPRE preservado (BD, LaTeX tab vía `aularaw`, vista estudiante) | `b83c137` | 29/29 + A–E |
+| 6 | `src/db/migrate-lessons-html.js` (one-time, idempotente, `--dry-run`; **6 lecciones migradas en la BD local**), E2E completo admin→estudiante (`tmp-check-hito6.js`), README actualizado | _(este commit)_ | 40/40 + A–E |
+
+**Regresión total al cierre**: A 29/29 · B 18/18 · C 22/22 · D 35/35 ·
+E 31/31 (**135/135**) + 224 checks de hito (45+36+28+46+29+40).
+
+**Garantías del usuario, verificadas**:
+1. **Lossless round-trip** — lo no convertible vive en
+   `data-latex-raw`/`aularaw` con el código exacto; WYSIWYG→LaTeX lo
+   devuelve tal cual; "convertir a imagen" es solo representación
+   visual (D20, checks Hito 4/5).
+2. **Quill 2 obligatorio, sin `execCommand`** — todo pasa por la API
+   de Quill (blots + `dangerouslyPasteHTML`).
+3. **Móvil** — bottombar/bubble con `touchstart`+`preventDefault`,
+   ocultas fuera de la pestaña WYSIWYG.
+4. **Fallback a imagen** — MathJax→html2canvas→PNG→uploads con
+   original en `data-latex-raw`.
+5. **sanitize-html en guardado Y render**; Quill HTML y `data-latex*`
+   sobreviven; MathJax corre después del sanitize dentro del iframe;
+   acentos/ñ probados (Hito 4).
+6. **Vista estudiante en iframe sandbox** (sin `allow-same-origin`),
+   ruta interna `/render`, altura dinámica, estilos base dentro.
+7. **`schema.sql` y `seed.js` intactos**; migración por script aparte.
+
+**Pendiente solo de verificación manual en navegador** (no automatizable
+desde Node): reproducción real de YouTube dentro del sandbox (Hito 1) y
+el clic de "Convertir a imagen" con rasterizado real (Hito 5).

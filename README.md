@@ -1,7 +1,8 @@
 # Aula — Polinomio de Taylor
 
 Plataforma de curso en Express + EJS + Supabase (Postgres/Storage):
-lecciones con markdown, quizzes calificados con retroalimentación,
+lecciones con **editor de 3 modos** (WYSIWYG + HTML + LaTeX),
+quizzes calificados con retroalimentación,
 examen final con bloqueo y temporizador, ranking global y panel de
 administración.
 
@@ -47,13 +48,15 @@ npm start              # http://localhost:3000
 - Se **autoregistran** en `/register` o los crea el admin desde el
   panel (con contraseña temporal visible una sola vez).
 - El login distingue: **email = admin**, **nombre = estudiante**.
-- Navegan lecciones (markdown), marcan progreso, resuelven quizzes
+- Navegan lecciones (HTML/LaTeX renderizados en iframe aislado),
+  marcan progreso, resuelven quizzes
   (reintentos hasta el máximo) y ven notas, feedback y ranking.
 
 ### Panel de admin (`/admin`)
 
 - Cursos: crear, editar, **publicar**; módulos y lecciones con
-  markdown + preview; un quiz por módulo y un examen final.
+  **editor 3 modos** (ver abajo); un quiz por módulo y un examen
+  final.
 - Quizzes: 6 tipos de pregunta, puntos, nota mínima, intentos,
   límite de tiempo, barajado, feedback por pregunta (texto +
   recursos: video/imagen/URL) y material de repaso en el modal.
@@ -61,6 +64,32 @@ npm start              # http://localhost:3000
   contraseña**.
 - Subida de material a Storage: archivos ≤50MB a `aula-media` con
   URL pública.
+
+### Editor de lecciones (3 modos)
+
+Cada lección se edita en tres pestañas sobre el **mismo documento**
+(el HTML canónico es la fuente de verdad):
+
+- **WYSIWYG** (Quill 2): texto enriquecido, fórmulas MathLive
+  (`\( \)` / `\[ \]`), vídeos de YouTube, imágenes y bloques
+  LaTeX crudos. En móvil: bottombar + burbuja de selección.
+- **HTML** (CodeMirror): el HTML exacto que se guarda en la BD.
+- **LaTeX** (CodeMirror): conversión lossless HTML ↔ LaTeX
+  (`\aulaimg`, `\aulavideo`, `$$…$$`, bloques opacos `\begin{aularaw}`
+  con el código original intacto en `data-latex-raw`). Acentos, ñ y
+  símbolos sobreviven el viaje de ida y vuelta.
+- Los bloques LaTeX no convertibles (`align`, `tabular`,
+  `\newcommand`…) se muestran como bloque opaco con el código
+  original; **"Convertir a imagen"** los rasteriza (MathJax +
+  html2canvas) a un PNG subido a Storage, conservando siempre
+  `data-latex-raw`.
+- El contenido se sirve al estudiante dentro de un
+  `<iframe sandbox="allow-scripts">` (origen opaco) vía
+  `GET /c/:slug/l/:id/render`, con MathJax y ajuste de altura.
+- Detalle técnico y decisiones: **`EDITOR-IMPLEMENTATION.md`**.
+- Lecciones antiguas en markdown: migrar con
+  `node src/db/migrate-lessons-html.js --dry-run` (revisa) y sin
+  `--dry-run` (aplica; idempotente).
 
 ### Examen final
 
@@ -125,14 +154,15 @@ variable `SUPABASE_DB_URL` (connection string del pooler de sesión).
 ```
 src/
   server.js        Express, layout de errores 404/500
-  lib/             auth (sesiones/roles), quiz (motor de quizzes), markdown
+  lib/             auth, quiz, markdown, lesson-html (sanitize + iframe)
   routes/          auth, student, admin
   views/           EJS: layout + student/ admin/ partials/
-  public/          css/ js/ (assets estáticos)
-  db/              seed.js (admin + curso demo + bucket)
+  public/          css/ js/ (assets estáticos; editor en lesson-editor.js)
+  db/              seed.js, migrate-lessons-html.js (one-time)
 supabase/schema.sql
 design/reference.html
 PLAN.md            plan completo del proyecto
+EDITOR-IMPLEMENTATION.md   editor 3 modos: decisiones y commits
 UX-NOTES.md        decisiones y correcciones de UX
 smoke.md           checklist manual de humo
 ```
