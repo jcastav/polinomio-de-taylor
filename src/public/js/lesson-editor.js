@@ -161,6 +161,13 @@
     } else if (tab === 'html') {
       if (cmHtml) { cmHtml.setValue(html); cmHtml.refresh(); }
     } else if (tab === 'latex') {
+      if (/<script[\s>]|<style[\s>]|<table\b/i.test(html)) {
+        var goLatex = confirm(
+          'El modo LaTeX no puede conservar <script>, <style> ni tablas HTML sin pérdida. ' +
+          '¿Convertir de todos modos?\n(Recomendado: quedarse en HTML.)'
+        );
+        if (!goLatex) return;
+      }
       if (cmLatex) {
         cmLatex.setValue(window.AULA_CONVERT ? AULA_CONVERT.htmlToLatex(html) : '');
         cmLatex.refresh();

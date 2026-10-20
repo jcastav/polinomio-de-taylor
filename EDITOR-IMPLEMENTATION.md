@@ -174,9 +174,9 @@ necesidad demostrada.
 | 0 | `EDITOR-IMPLEMENTATION.md` (este archivo) | ✅ |
 | 1 | Render infra: `lesson-html.js`, ruta `/render`, iframe sandbox en estudiante y preview admin, dual-format, MathJax, youtube transform, postMessage height | ✅ `14cf38c` (45/45 checks) |
 | 2 | Quill 2 WYSIWYG en editor de lección (blots math/youtube/raw, uploads imagen, bottombar/bubble móvil, guardado sanitizado) | ✅ `7e8999e` (36/36 checks + A–E verde) |
-| 3 | CodeMirror 5: pestañas HTML y LaTeX sobre el mismo documento | ✅ (28/28 checks + A–E verde) |
-| 4 | Conversor HTML↔LaTeX lossless (aulaimg/aulavideo/aularaw, opacos, acentos/ñ) | ⬅ siguiente |
-| 5 | Fallback "Convertir a imagen" (MathJax → html2canvas → upload; `data-latex-raw` preservado) | pendiente |
+| 3 | CodeMirror 5: pestañas HTML y LaTeX sobre el mismo documento | ✅ `d7a9435` (28/28 checks + A–E verde) |
+| 4 | Conversor HTML↔LaTeX lossless (aulaimg/aulavideo/aularaw, opacos, acentos/ñ) | ✅ (46/46 checks jsdom + A–E verde) |
+| 5 | Fallback "Convertir a imagen" (MathJax → html2canvas → upload; `data-latex-raw` preservado) | ⬅ siguiente |
 | 6 | Migración de lecciones demo a HTML + tests E2E + README | pendiente |
 
 **Protocolo**: al terminar cada hito → commit atómico → actualizar §5 y §6 de
@@ -202,6 +202,9 @@ este archivo → resumen ejecutivo → PARAR y esperar luz verde.
 | D14 | El conversor `lesson-convert.js` (port del mockup aprobado) se implementa YA en el Hito 3 para que las pestañas HTML↔LaTeX funcionen end-to-end; el Hito 4 lo endurece (entornos opacos, round-trip exacto, avisos, tests con acentos) | Las pestañas sin conversor quedarían inútiles; commits funcionales | 3 |
 | D15 | Pestañas WYSIWYG/HTML/LaTeX SIEMPRE visibles. `initialTab`: `html` para markdown legacy o contenido avanzado (script/style/data-latex-raw), `wysiwyg` para vacío/HTML simple. El documento canónico entre pestañas es el HTML (`currentHtml()`); LaTeX se convierte al salir de la pestaña. Al entrar a WYSIWYG con contenido avanzado: `confirm()` de aviso de pérdida | Lossless salvo confirmación explícita del usuario | 3 |
 | D16 | CodeMirror por CDN `5.65.16` con modos xml+javascript+css+htmlmixed+stex y addons closetag/closebrackets/matchbrackets. Los paneles CM solo existen como pestañas (no dos editores simultáneos); el bottombar/bubble móvil se ocultan fuera de la pestaña WYSIWYG (`.ed-host[data-tab]`) | Un solo documento, sin duplicar estado | 3 |
+| D17 | Tokenizador de `inlineFromLatex` (regex por llamada, recursivo): los escapes de texto LaTeX (`\%`, `\&`, `\#`, `\$`, `\_`, `\{`, `\}`, `\\`→`<br>`) se decodifican SOLO en segmentos de texto plano, nunca dentro de atributos `data-latex*` → «texto → LaTeX → texto» exacto con ñ, acentos y símbolos | Lossless real; el enfoque de replace global del mockup corrompía atributos | 4 |
+| D18 | `\newcommand`/`\renewcommand`/`\providecommand`/`\def` (llaves balanceadas) y `\begin{env}` con argumentos (`\begin{tabular}{ll}`, `[opt]`) → bloque opaco con código exacto; `equation`, `tabular`, etc. siguen opacos (el nombre del entorno se conserva en `data-latex-raw`); `center`/`flushleft`/`flushright` ↔ `div.ql-align-*` (Quill) con conversión de contenido anidado | Lo no convertible nunca se degrada; lo convertible conserva el entorno original | 4 |
+| D19 | `aularaw` es bidireccional exacto: `\begin{aularaw}\nX\n\end{aularaw}` ↔ `div.raw-block[data-latex-raw="X"]` (X SIN el wrapper; el wrapper se re-emite al volver a LaTeX). Imagen inline: `\aulaimg{src}{alt}` se reconoce también dentro de párrafos. Al pasar a pestaña LaTeX con `<script>`/`<style>`/`<table>`: `confirm()` de aviso | Round-trip estable sin anidamiento de wrappers | 4 |
 
 ## 5. Registro de commits
 
@@ -211,7 +214,8 @@ este archivo → resumen ejecutivo → PARAR y esperar luz verde.
 | `5b1894c` | 0 | docs: EDITOR-IMPLEMENTATION.md |
 | `14cf38c` | 1 | feat: render de lección en iframe sandbox con dual-format |
 | `7e8999e` | 2 | feat: editor Quill 2 WYSIWYG con blots custom y MathLive |
-| _(commit de este hito)_ | 3 | feat: CodeMirror 5 en pestañas HTML y LaTeX con conversor base |
+| `d7a9435` | 3 | feat: CodeMirror 5 en pestañas HTML y LaTeX con conversor base |
+| _(commit de este hito)_ | 4 | feat: conversor HTML↔LaTeX lossless (tokenizador, opacos, acentos/ñ) |
 
 ## 6. Pendientes y cosas raras
 
@@ -254,6 +258,7 @@ $env:PORT=3100; Start-Process node -ArgumentList 'src/server.js' `
 node tmp-check-hito1.js      # checks Hito 1 (45/45)
 node tmp-check-hito2.js      # checks Hito 2 (36/36)
 node tmp-check-hito3.js      # checks Hito 3 (28/28)
+node tmp-check-hito4.js      # checks Hito 4 conversor (46/46, jsdom)
 .\tmp-check-a.ps1            # regresión completa A–E tras cada hito
 ```
 
