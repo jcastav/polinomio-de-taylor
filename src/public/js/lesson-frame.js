@@ -1,18 +1,35 @@
-// Altura dinámica del iframe de lección (sandbox allow-scripts) y
-// reproductor de YouTube FUERA del sandbox (D27).
+// Altura dinámica del iframe de lección (sandbox allow-scripts) y montaje de
+// embeds (YouTube/GeoGebra/Vimeo) FUERA del sandbox (D27/D28).
 // El documento de lección corre en origen opaco (sandbox sin
-// allow-same-origin): el player de YouTube exige su origen propio y ahí muere.
-// El placeholder avía por postMessage y aquí se monta el iframe del
-// reproductor en la página host (mismo patrón que results.ejs).
+// allow-same-origin): YouTube y GeoGebra mueren ahí (storage/canvas), así que
+// el marcador avía por postMessage y aquí se monta el iframe real en la
+// página host (mismo patrón que results.ejs).
 // Siempre se valida: origen del mensaje (source === contentWindow), token por
-// request y el id se vuelve a sanitizar antes de construir la URL.
+// request y la URL (https + host en lista blanca) antes de montar.
 (function () {
+  var EMBED_HOSTS = [
+    'www.youtube.com', 'youtube.com', 'www.youtube-nocookie.com',
+    'player.vimeo.com', 'vimeo.com',
+    'www.geogebra.org', 'geogebra.org', 'tube.geogebra.org',
+  ];
+
+  function safeEmbedUrl(raw) {
+    try {
+      var u = new URL(String(raw || ''));
+      if (u.protocol !== 'https:') return null;
+      if (EMBED_HOSTS.indexOf(u.hostname.toLowerCase()) === -1) return null;
+      return u.href;
+    } catch (e) {
+      return null;
+    }
+  }
+
   var frames = document.querySelectorAll('iframe.lesson-frame');
   for (var i = 0; i < frames.length; i++) {
     (function (frame) {
       var token = frame.getAttribute('data-token') || '';
-      var overlay = null; // iframe del reproductor (fuera del sandbox)
-      var rect = null; // posición del placeholder en coords del doc de lección
+      var overlay = null; // iframe del embed (fuera del sandbox)
+      var rect = null; // posición del marcador en coords del doc de lección
 
       function place() {
         if (!overlay || !rect) return;
@@ -25,13 +42,13 @@
         overlay.style.height = Math.round(rect.height) + 'px';
       }
 
-      function mount(id) {
+      function mount(src) {
         if (overlay) overlay.parentNode.removeChild(overlay);
         overlay = document.createElement('iframe');
-        overlay.className = 'lesson-yt-player';
-        overlay.src = 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1';
-        overlay.title = 'Reproductor de video';
-        overlay.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+        overlay.className = 'lesson-embed-player';
+        overlay.src = src;
+        overlay.title = 'Contenido interactivo';
+        overlay.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen');
         overlay.setAttribute('allowfullscreen', '');
         overlay.style.cssText = 'position:absolute; border:0; margin:0; background:#000; z-index:40;';
         document.body.appendChild(overlay);
@@ -46,13 +63,13 @@
         if (d.type === 'aula:lesson-height') {
           var h = Number(d.height);
           if (h > 0) frame.style.height = h + 'px';
-          place(); // el reflow interior puede mover el marcador del vídeo
+          place(); // el reflow interior puede mover el marcador del embed
           return;
         }
 
-        if (d.type === 'aula:play-youtube') {
-          var id = String(d.id || '').replace(/[^\w-]/g, '');
-          if (!id) return;
+        if (d.type === 'aula:play-embed') {
+          var src = safeEmbedUrl(d.src);
+          if (!src) return;
           var r = d.rect || {};
           var w = Number(r.width);
           var hgt = Number(r.height);
@@ -65,7 +82,7 @@
             width: w,
             height: hgt,
           };
-          mount(id);
+          mount(src);
         }
       });
 

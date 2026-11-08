@@ -5,6 +5,15 @@ const crypto = require('crypto');
 const sanitizeHtml = require('sanitize-html');
 const { renderMarkdown } = require('./markdown');
 
+// Hosts externos permitidos en iframes: saneado (allowedIframeHostnames) y
+// reproductor host (lesson-frame.js). Los embeds se montan FUERA del sandbox
+// (D27/D28) porque el origen opaco rompe YouTube y GeoGebra.
+const EMBED_HOSTS = [
+  'www.youtube.com', 'youtube.com', 'www.youtube-nocookie.com',
+  'player.vimeo.com', 'vimeo.com',
+  'www.geogebra.org', 'geogebra.org', 'tube.geogebra.org',
+];
+
 // Perfil permisivo para el HTML canónico del editor: style/script permitidos
 // porque la ejecución queda confinada en el <iframe sandbox="allow-scripts">
 // de la vista estudiante/preview (origen opaco, sin cookies ni DOM padre).
@@ -30,17 +39,15 @@ const PERMISSIVE = {
     th: ['colspan', 'rowspan', 'align'],
     td: ['colspan', 'rowspan', 'align'],
     iframe: ['src', 'width', 'height', 'allow', 'allowfullscreen',
-      'frameborder', 'title', 'loading'],
+      'frameborder', 'title', 'loading', 'scrolling', 'allowtransparency', 'name'],
+    script: ['src', 'type', 'async', 'defer', 'id'],
     video: ['src', 'controls', 'width', 'height', 'poster'],
     source: ['src', 'type'],
     audio: ['src', 'controls'],
   },
   allowedSchemes: ['http', 'https', 'mailto'],
   allowProtocolRelative: false,
-  allowedIframeHostnames: [
-    'www.youtube.com', 'youtube.com', 'www.youtube-nocookie.com',
-    'player.vimeo.com', 'vimeo.com',
-  ],
+  allowedIframeHostnames: EMBED_HOSTS,
   // Aceptado y documentado: script/style solo se ejecutan dentro del
   // iframe sandbox (EDITOR-IMPLEMENTATION.md §6).
   allowVulnerableTags: true,
@@ -56,6 +63,37 @@ function sanitizeLessonHtml(html) {
   return sanitizeHtml(String(html || ''), PERMISSIVE);
 }
 
+function decodeEntities(s) {
+  return String(s || '')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+}
+
+// D28: en el documento de lección los iframes externos (YouTube, GeoGebra,
+// Vimeo) no pueden montar su app en el origen opaco del sandbox. Se sustituyen
+// por un marcador clicable; el cliente avía y lesson-frame.js monta el iframe
+// FUERA del sandbox. El contenido guardado conserva el iframe original
+// (lossless); esto solo afecta al documento servido en /render y /preview.
+function embedsToPlaceholders(html) {
+  return String(html || '').replace(/<iframe\b([^>]*)><\/iframe>/gi, (whole, attrs) => {
+    const m = /src="([^"]*)"/i.exec(attrs);
+    if (!m) return whole;
+    let url;
+    try { url = new URL(decodeEntities(m[1])); } catch (e) { return whole; }
+    if (url.protocol !== 'https:' || EMBED_HOSTS.indexOf(url.hostname.toLowerCase()) === -1) {
+      return whole;
+    }
+    const w = /\bwidth="(\d+)"/i.exec(attrs);
+    const h = /\bheight="(\d+)"/i.exec(attrs);
+    const ratio = (w && h && +w[1] > 0 && +h[1] > 0) ? w[1] + '/' + h[1] : '16/9';
+    const host = url.hostname.replace(/^www\./, '');
+    return '<div class="aula-embed" data-embed-src="' + escapeHtml(url.href) + '"' +
+      ' data-embed-host="' + escapeHtml(host) + '"' +
+      ' style="aspect-ratio:' + ratio + '" tabindex="0" role="button"' +
+      ' aria-label="Cargar contenido interactivo"></div>';
+  });
+}
+
 // Heurística dual (schema intocable, sin columna de formato): si el contenido
 // parece HTML del editor se sanea con el perfil permisivo; si no, se trata
 // como markdown legacy (perfil estricto de §12).
@@ -65,9 +103,10 @@ function isHtmlContent(content) {
 }
 
 function renderLessonContent(content) {
-  return isHtmlContent(content)
+  const html = isHtmlContent(content)
     ? sanitizeLessonHtml(content)
     : renderMarkdown(content);
+  return embedsToPlaceholders(html);
 }
 
 // Documento completo servido dentro del iframe sandbox. El template inyecta
@@ -113,6 +152,10 @@ body{ margin:0; padding:14px 16px 24px; }
 .aula-youtube:hover{ border-color:var(--accent); }
 .aula-youtube:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 .aula-youtube .aula-youtube-ph{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:12px; text-align:center; }
+.aula-embed{ display:flex; align-items:center; justify-content:center; aspect-ratio:16/9; border:1px dashed var(--line); background:#f7f4ec; margin:0 0 14px; cursor:pointer; color:var(--muted); font:700 12px/1.4 Tahoma, sans-serif; letter-spacing:.06em; text-align:center; padding:12px; box-sizing:border-box; }
+.aula-embed::before{ content:'Cargar ' attr(data-embed-host); }
+.aula-embed:hover{ border-color:var(--accent); color:var(--ink); }
+.aula-embed:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 </style>
 </head>
 <body>
@@ -131,37 +174,43 @@ ${mathjax}
       parent.postMessage({ type: 'aula:lesson-height', token: token, height: h }, '*');
     } catch (e) {}
   }
+  function wireEmbed(el, src) {
+    if (!src) return;
+    // D27/D28: ni el video del editor ni un iframe externo pueden ejecutarse
+    // en este documento (origen opaco): se avía al padre y lesson-frame.js
+    // monta el reproductor/embed FUERA del sandbox.
+    el.setAttribute('tabindex', '0');
+    el.setAttribute('role', 'button');
+    if (!el.getAttribute('aria-label')) el.setAttribute('aria-label', 'Cargar contenido interactivo');
+    function play() {
+      var r = el.getBoundingClientRect();
+      parent.postMessage({
+        type: 'aula:play-embed',
+        token: token,
+        src: src,
+        rect: { left: r.left, top: r.top, width: r.width, height: r.height },
+        sx: window.scrollX || 0,
+        sy: window.scrollY || 0
+      }, '*');
+    }
+    el.addEventListener('click', play);
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        play();
+      }
+    });
+  }
   var yt = document.querySelectorAll('div[data-youtube]');
   for (var i = 0; i < yt.length; i++) {
-    (function (el) {
-      var id = String(el.getAttribute('data-youtube') || '').replace(/[^\\w-]/g, '');
-      if (!id) return;
-      // D27: el placeholder NO se convierte en iframe aquí. El documento corre
-      // en origen opaco (sandbox sin allow-same-origin) y el player de YouTube
-      // exige su origen propio; se avía al padre y lesson-frame.js monta el
-      // reproductor FUERA del sandbox.
-      el.setAttribute('tabindex', '0');
-      el.setAttribute('role', 'button');
-      if (!el.getAttribute('aria-label')) el.setAttribute('aria-label', 'Reproducir video');
-      function play() {
-        var r = el.getBoundingClientRect();
-        parent.postMessage({
-          type: 'aula:play-youtube',
-          token: token,
-          id: id,
-          rect: { left: r.left, top: r.top, width: r.width, height: r.height },
-          sx: window.scrollX || 0,
-          sy: window.scrollY || 0
-        }, '*');
-      }
-      el.addEventListener('click', play);
-      el.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
-          e.preventDefault();
-          play();
-        }
-      });
-    })(yt[i]);
+    var ytId = String(yt[i].getAttribute('data-youtube') || '').replace(/[^\\w-]/g, '');
+    if (ytId) {
+      wireEmbed(yt[i], 'https://www.youtube-nocookie.com/embed/' + ytId + '?autoplay=1');
+    }
+  }
+  var emb = document.querySelectorAll('div[data-embed-src]');
+  for (var j = 0; j < emb.length; j++) {
+    wireEmbed(emb[j], emb[j].getAttribute('data-embed-src') || '');
   }
   if (window.ResizeObserver) {
     var ro = new ResizeObserver(function () { sendHeight(); });
